@@ -1,0 +1,43 @@
+/* ===== CLIENT BRIDGE CONFIGURATION FOR qm1 ===== */
+-- File: /etc/mqm/mqclient.ini must contain:
+-- Client:
+--   ConnectionName=your-mainframe-host.com(1414)
+--   Channel=SYSTEM.DEF.SVRCONN
+
+/* ===== SENDING TO MAINFRAME (qm1 → vsp1) ===== */
+-- Alias for sending to mainframe INPUT queue
+DEFINE QALIAS('TO.MAINFRAME.SEND') +
+       TARGET('VSP.INPUT.SEND') +          -- Your mainframe send queue
+       TARGCLIENT('MQClient') +            -- Use client connection
+       REPLACE
+
+/* ===== RECEIVING FROM MAINFRAME (vsp1 → qm1) ===== */
+-- Alias for receiving from mainframe OUTPUT queue
+DEFINE QALIAS('FROM.MAINFRAME.RECV') +
+       TARGET('VSP.OUTPUT.RECV') +         -- Your mainframe receive queue
+       TARGCLIENT('MQClient') +            -- Use client connection
+       REPLACE
+
+/* ===== LOCAL QUEUES FOR PROCESSING ===== */
+-- Local queue for EKS apps to send (optional buffer)
+DEFINE QLOCAL('EKS.TO.MAINFRAME.LOCAL') +
+       REPLACE
+
+-- Local queue for EKS apps to receive (optional buffer)
+DEFINE QLOCAL('EKS.FROM.MAINFRAME.LOCAL') +
+       REPLACE
+
+/* ===== CHANNELS FOR EKS APPLICATIONS ===== */
+-- Channel for your EKS apps to connect to qm1
+DEFINE CHANNEL('QM1.APP.SVRCONN') +
+       CHLTYPE(SVRCONN) +
+       TRPTYPE(TCP) +
+       REPLACE
+
+/* ===== START SERVICES ===== */
+START CHANNEL('QM1.APP.SVRCONN')
+
+/* ===== VERIFY SETUP ===== */
+DISPLAY QALIAS('TO.MAINFRAME.SEND')
+DISPLAY QALIAS('FROM.MAINFRAME.RECV')
+DISPLAY CHSTATUS('QM1.APP.SVRCONN')
