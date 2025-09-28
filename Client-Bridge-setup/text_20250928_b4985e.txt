@@ -1,0 +1,8 @@
+# Test sending to mainframe
+echo "Test message" | /opt/mqm/samp/bin/amqsput TO.MAINFRAME.SEND qm1
+
+# Test receiving from mainframe  
+/opt/mqm/samp/bin/amqsget FROM.MAINFRAME.RECV qm1 30
+
+# Verify setup
+echo "DISPLAY QALIAS('*')" | runmqsc qm1

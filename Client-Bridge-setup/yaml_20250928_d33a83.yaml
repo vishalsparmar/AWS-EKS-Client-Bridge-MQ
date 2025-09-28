@@ -1,0 +1,33 @@
+# qmgr-client-bridge.yaml
+apiVersion: mq.ibm.com/v1beta1
+kind: QueueManager
+metadata:
+  name: qm1
+  namespace: mq
+spec:
+  license:
+    accept: true
+    use: NonProduction
+  queueManager:
+    name: qm1
+  config:
+    - configMap:
+        name: mq-client-config
+        items:
+          - client-bridge.mqsc
+  template:
+    pod:
+      containers:
+        - name: qmgr
+          volumeMounts:
+            - name: mq-client-config
+              mountPath: /etc/mqm/mqclient.ini
+              subPath: mqclient.ini
+              readOnly: true
+      volumes:
+        - name: mq-client-config
+          configMap:
+            name: mq-client-config
+            items:
+              - key: mqclient.ini
+                path: mqclient.ini

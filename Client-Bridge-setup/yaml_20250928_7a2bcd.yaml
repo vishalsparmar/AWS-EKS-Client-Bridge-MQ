@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mq-client-config
+  namespace: mq
+data:
+  mqclient.ini: |
+    Client:
+      ConnectionName=your-mainframe-host.com(1414)
+      Channel=SYSTEM.DEF.SVRCONN
+
+  client-bridge.mqsc: |
+    /* ===== CLIENT BRIDGE FOR qm1 → vsp1 ===== */
+    DEFINE QALIAS('TO.MAINFRAME.SEND') +
+           TARGET('VSP.INPUT.SEND') +
+           TARGCLIENT('MQClient') +
+           REPLACE
+
+    DEFINE QALIAS('FROM.MAINFRAME.RECV') +
+           TARGET('VSP.OUTPUT.RECV') +
+           TARGCLIENT('MQClient') +
+           REPLACE
+
+    DEFINE CHANNEL('QM1.APP.SVRCONN') +
+           CHLTYPE(SVRCONN) +
+           TRPTYPE(TCP) +
+           REPLACE
+
+    START CHANNEL('QM1.APP.SVRCONN')

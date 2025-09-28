@@ -1,0 +1,33 @@
+# mq-client-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mq-client-config
+  namespace: mq
+data:
+  mqclient.ini: |
+    Client:
+      ConnectionName=your-mainframe-host.com(1414)  # Replace with actual host
+      Channel=SYSTEM.DEF.SVRCONN                    # Replace with actual channel
+      #SSL:
+      #  CipherSpec=TLS_RSA_WITH_AES_256_CBC_SHA256
+      #  CertificateLabel=mainframe-cert
+
+  client-bridge.mqsc: |
+    /* ===== CLIENT BRIDGE SETUP ===== */
+    DEFINE QALIAS('TO.MAINFRAME.SEND') +
+           TARGET('VSP.INPUT.SEND') +
+           TARGCLIENT('MQClient') +
+           REPLACE
+
+    DEFINE QALIAS('FROM.MAINFRAME.RECV') +
+           TARGET('VSP.OUTPUT.RECV') +
+           TARGCLIENT('MQClient') +
+           REPLACE
+
+    DEFINE CHANNEL('QM1.APP.SVRCONN') +
+           CHLTYPE(SVRCONN) +
+           TRPTYPE(TCP) +
+           REPLACE
+
+    START CHANNEL('QM1.APP.SVRCONN')
