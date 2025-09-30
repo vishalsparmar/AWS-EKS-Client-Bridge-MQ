@@ -1,0 +1,36 @@
+Use a SIMPLE Readiness Endpoint
+
+yaml
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    readinessstate:
+      enabled: true
+    # DISABLE all complex checks for readiness
+    readiness:
+      enabled: false
+2. Kubernetes - Use Liveness Only Temporarily
+
+yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kms-mainframe-listener
+spec:
+  template:
+    spec:
+      containers:
+      - name: kms-listener
+        # Remove readiness probe temporarily
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        # readinessProbe:  # COMMENT THIS OUT TEMPORARILY
