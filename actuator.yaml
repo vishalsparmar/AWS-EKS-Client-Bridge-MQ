@@ -1,19 +1,25 @@
-# application.yaml
-management:
-  health:
-    jms:
-      enabled: false  # Disable JMS health check temporarily
-    # OR configure it properly
-    jms:
-      enabled: true
-      timeout: 10s    # Increase timeout
-    
-endpoints:
-  health:
-    sensitive: false
-
-# Alternative: Disable all JMS auto-configuration if needed
 spring:
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jms.JmsAutoConfiguration
+  jms:
+    cache:
+      enabled: true
+      connection-cache-size: 5
+      session-cache-size: 10
+      cache-consumers: true
+    # Critical for MQRC 2538
+    ibm:
+      mq:
+        queue-manager: YOUR_QMGR
+        channel: YOUR_CHANNEL
+        conn-name: hostname(1414)
+        # Automatic reconnection settings
+        automatic-reconnect: true
+        reconnect-delay: 5000              # 5 seconds between attempts
+        client-reconnect-timeout: 1800     # 30 minutes total
+        reconnect-retry-count: 999999      # Essentially unlimited
+        # Connection timeout settings
+        connection-timeout: 30000          # 30 seconds
+        read-timeout: 30000                # 30 seconds
+        receive-timeout: 30000             # 30 seconds for polling
+        # Heartbeat settings (if supported)
+        heartbeat-interval: 300            # 5 minutes
+        keep-alive-interval: 60            # 1 minute
