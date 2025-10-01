@@ -1,3 +1,11 @@
+# Check TCP keepalive settings
+cat /proc/sys/net/ipv4/tcp_keepalive_time
+cat /proc/sys/net/ipv4/tcp_keepalive_intvl
+cat /proc/sys/net/ipv4/tcp_keepalive_probes
+
+# Check TCP retransmission settings
+cat /proc/sys/net/ipv4/tcp_retries2
+
 (Get-Content your-script.sh -Raw) -replace "`r`n", "`n" 
 spring:
   jms:
