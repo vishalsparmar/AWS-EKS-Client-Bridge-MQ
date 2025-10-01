@@ -2,24 +2,38 @@ spring:
   jms:
     cache:
       enabled: true
-      connection-cache-size: 5
-      session-cache-size: 10
+      connection-cache-size: 3           # Conservative for mainframe
+      session-cache-size: 5
       cache-consumers: true
-    # Critical for MQRC 2538
+    # IBM MQ 9.3 specific configuration
     ibm:
       mq:
         queue-manager: YOUR_QMGR
         channel: YOUR_CHANNEL
         conn-name: hostname(1414)
-        # Automatic reconnection settings
+        # Advanced reconnection (9.3 feature)
         automatic-reconnect: true
-        reconnect-delay: 5000              # 5 seconds between attempts
-        client-reconnect-timeout: 1800     # 30 minutes total
-        reconnect-retry-count: 999999      # Essentially unlimited
-        # Connection timeout settings
-        connection-timeout: 30000          # 30 seconds
-        read-timeout: 30000                # 30 seconds
-        receive-timeout: 30000             # 30 seconds for polling
-        # Heartbeat settings (if supported)
-        heartbeat-interval: 300            # 5 minutes
-        keep-alive-interval: 60            # 1 minute
+        reconnect-delay: 10000           # 10 seconds for mainframe stability
+        client-reconnect-timeout: 3600   # 60 minutes total
+        reconnect-retry-count: 999999
+        # Mainframe-optimized settings
+        transport-type: 1                # CLIENT
+        fail-if-quiesce: true
+        message-context: false
+        use-conversion: true
+        ccsid: 1208                      # UTF-8
+        # Heartbeat for mainframe connections
+        heartbeat-interval: 600          # 10 minutes (conservative)
+        keep-alive-interval: 120         # 2 minutes
+        # Mainframe-optimized timeouts
+        connection-timeout: 45000        # 45 seconds
+        read-timeout: 45000              # 45 seconds  
+        receive-timeout: 45000           # 45 seconds for polling
+        # Channel exit settings (if needed)
+        channel-exit: false
+    # JMS Template
+    template:
+      receive-timeout: 45000             # 45 seconds
+      delivery-persistent: true
+      explicit-qos-enabled: true
+      time-to-live: 86400000             # 24 hours
