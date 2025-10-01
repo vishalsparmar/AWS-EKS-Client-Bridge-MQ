@@ -1,0 +1,41 @@
+spring:
+  jms:
+    cache:
+      enabled: true
+      connection-cache-size: 5
+      session-cache-size: 10
+      cache-consumers: true
+    # IBM MQ with v9.3.5.0 features
+    ibm:
+      mq:
+        queue-manager: YOUR_QMGR
+        channel: YOUR_CHANNEL
+        conn-name: hostname(1414)
+        # Advanced reconnection (v9.3.5.0 supports this)
+        automatic-reconnect: true
+        reconnect-delay: 5000              # 5 seconds between attempts
+        client-reconnect-timeout: 1800     # 30 minutes total
+        reconnect-retry-count: 999999      # Essentially unlimited
+        # Connection pooling
+        pool:
+          enabled: true
+          max-connections: 5
+          max-sessions-per-connection: 10
+          idle-timeout: 30000
+          connection-timeout: 30000
+        # Modern features
+        shared-conversations: true         # Reduces connection overhead
+        message-context: false             # Better for Spring
+        use-conversion: true
+        ccsid: 1208                        # UTF-8
+        # Heartbeat and keepalive
+        heartbeat-interval: 300            # 5 minutes
+        keep-alive-interval: 60            # 1 minute
+        # Timeout settings
+        connection-timeout: 30000          # 30 seconds
+        read-timeout: 30000                # 30 seconds
+        receive-timeout: 30000             # 30 seconds for polling
+    # JMS Template settings
+    template:
+      receive-timeout: 30000               # 30 seconds
+      default-destination: "YOUR.QUEUE.NAME"
