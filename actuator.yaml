@@ -13,3 +13,21 @@ deployment:
     periodSeconds: 10
     timeoutSeconds: 2
     failureThreshold: 3
+
+
+ containers:
+      - name: listener
+        image: yourcompany/mq-listener:latest
+        env:
+        - name: MQ_QUEUE_MANAGER
+          value: "qm1"
+        - name: MQ_HOST
+          value: "qm1-ibm-mq.mq.svc.cluster.local"
+        - name: MQ_PORT
+          value: "1414"
+        - name: MQ_CHANNEL
+          value: "EKS.APP.SVRCONN"
+        - name: MQ_CLIENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name  # Unique per pod
