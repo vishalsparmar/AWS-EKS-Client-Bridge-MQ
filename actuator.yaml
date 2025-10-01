@@ -1,33 +1,19 @@
-deployment:
-  livenessProbe:
-    path: /health    # Simple custom endpoint
-    port: 8080
-    initialDelaySeconds: 60
-    periodSeconds: 15
-    timeoutSeconds: 2
-    failureThreshold: 3
-  readinessProbe:
-    path: /ready     # Simple custom endpoint  
-    port: 8080
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 2
-    failureThreshold: 3
+# application.yaml
+management:
+  health:
+    jms:
+      enabled: false  # Disable JMS health check temporarily
+    # OR configure it properly
+    jms:
+      enabled: true
+      timeout: 10s    # Increase timeout
+    
+endpoints:
+  health:
+    sensitive: false
 
-
- containers:
-      - name: listener
-        image: yourcompany/mq-listener:latest
-        env:
-        - name: MQ_QUEUE_MANAGER
-          value: "qm1"
-        - name: MQ_HOST
-          value: "qm1-ibm-mq.mq.svc.cluster.local"
-        - name: MQ_PORT
-          value: "1414"
-        - name: MQ_CHANNEL
-          value: "EKS.APP.SVRCONN"
-        - name: MQ_CLIENT_ID
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name  # Unique per pod
+# Alternative: Disable all JMS auto-configuration if needed
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jms.JmsAutoConfiguration
