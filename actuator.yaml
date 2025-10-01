@@ -1,3 +1,4 @@
+(Get-Content your-script.sh -Raw) -replace "`r`n", "`n" 
 spring:
   jms:
     cache:
