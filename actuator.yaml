@@ -1,71 +1,14 @@
-# Apply TCP settings and test immediately in one command
-kubectl exec -it <your-pod> -n <namespace> -- /bin/sh -c "
-echo 'Current TCP settings:'
-cat /proc/sys/net/ipv4/tcp_keepalive_time
-cat /proc/sys/net/ipv4/tcp_keepalive_intvl
-
-echo 'Changing TCP settings...'
-echo 300 > /proc/sys/net/ipv4/tcp_keepalive_time
-echo 15 > /proc/sys/net/ipv4/tcp_keepalive_intvl
-echo 3 > /proc/sys/net/ipv4/tcp_keepalive_probes
-
-echo 'New TCP settings:'
-cat /proc/sys/net/ipv4/tcp_keepalive_time
-cat /proc/sys/net/ipv4/tcp_keepalive_intvl
-
-echo 'Testing connections with new settings...'
-for i in 1 2 3 4 5; do
-  echo \"Attempt \$i:\"
-  timeout 10 nc -w 5 -zv mainframe.company.com 1414 && echo '✓ SUCCESS' || echo '✗ FAILED'
-  sleep 2
-done
-"
-
-# Check TCP keepalive settings
-cat /proc/sys/net/ipv4/tcp_keepalive_time
-cat /proc/sys/net/ipv4/tcp_keepalive_intvl
-cat /proc/sys/net/ipv4/tcp_keepalive_probes
-
-# Check TCP retransmission settings
-cat /proc/sys/net/ipv4/tcp_retries2
-
-(Get-Content your-script.sh -Raw) -replace "`r`n", "`n" 
 spring:
   jms:
     cache:
       enabled: true
-      connection-cache-size: 3           # Conservative for mainframe
-      session-cache-size: 5
-      cache-consumers: true
-    # IBM MQ 9.3 specific configuration
+      connection-cache-size: 1      # Single connection
+      session-cache-size: 3
+    pool:
+      enabled: true
+      max-connections: 1            # Only one connection
+      max-sessions-per-connection: 3
     ibm:
       mq:
-        queue-manager: YOUR_QMGR
-        channel: YOUR_CHANNEL
-        conn-name: hostname(1414)
-        # Advanced reconnection (9.3 feature)
         automatic-reconnect: true
-        reconnect-delay: 10000           # 10 seconds for mainframe stability
-        client-reconnect-timeout: 3600   # 60 minutes total
-        reconnect-retry-count: 999999
-        # Mainframe-optimized settings
-        transport-type: 1                # CLIENT
-        fail-if-quiesce: true
-        message-context: false
-        use-conversion: true
-        ccsid: 1208                      # UTF-8
-        # Heartbeat for mainframe connections
-        heartbeat-interval: 600          # 10 minutes (conservative)
-        keep-alive-interval: 120         # 2 minutes
-        # Mainframe-optimized timeouts
-        connection-timeout: 45000        # 45 seconds
-        read-timeout: 45000              # 45 seconds  
-        receive-timeout: 45000           # 45 seconds for polling
-        # Channel exit settings (if needed)
-        channel-exit: false
-    # JMS Template
-    template:
-      receive-timeout: 45000             # 45 seconds
-      delivery-persistent: true
-      explicit-qos-enabled: true
-      time-to-live: 86400000             # 24 hours
+        reconnect-delay: 60000      # Wait 60 seconds between reconnects
