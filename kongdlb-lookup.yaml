@@ -1,0 +1,29 @@
+# Find Kong NLB by your known tags
+data "aws_lb" "kong_nlb" {
+  tags = {
+    "elbv2.k8s.aws/cluster" = "your-eks-cluster-name"
+    "ingress.k8s.aws/stack" = "kong"
+    "app.kubernetes.io/name" = "kong"
+    # Add your specific known tags here
+  }
+}
+
+# Create the DNS record
+resource "aws_route53_record" "kong_service_mapping" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "my-service.your-domain.com"
+  type    = "A"
+
+  alias {
+    name                   = data.aws_lb.kong_nlb.dns_name
+    zone_id                = data.aws_lb.kong_nlb.zone_id
+    evaluate_target_health = true
+  }
+
+  # Optional: Add tags to the DNS record
+  tags = {
+    Name        = "kong-service-mapping"
+    Environment = "production"
+    ManagedBy   = "terraform"
+  }
+}
