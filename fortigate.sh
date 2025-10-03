@@ -1,3 +1,10 @@
+msg.setStringProperty("JMS_IBM_Format", "MQSTR"); // String format
+        msg.setIntProperty("JMS_IBM_Character_Set", 37); // CP037
+        msg.setIntProperty("JMS_IBM_Encoding", 546); // Packed decimal for EBCDIC
+        msg.setIntProperty("JMS_IBM_MsgType", 8); // Persistent message
+
+        
+
 bash
 # Get service cluster IP
 kubectl get svc other-service-name -o wide
