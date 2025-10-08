@@ -1,27 +1,8 @@
-  // CRITICAL: These prevent MQHRF2 headers
-        factory.setMessageBodyStyle(WMQConstants.WMQ_MESSAGE_BODY_MQ);
-        factory.setTargetClientMatching(WMQConstants.WMQ_TARGET_DEST_MQ);
-        
-        // This is the key - prevents RFH2 header creation
-        factory.setBooleanProperty(WMQConstants.WMQ_MQMD_WRITE_ENABLED, true);
-        factory.setBooleanProperty(WMQConstants.WMQ_MQMD_MESSAGE_CONTEXT, 
-                                   WMQConstants.WMQ_MDCTX_SET_ALL_CONTEXT);
+// 1. Connection Factory
+factory.setTargetClient(1);
+factory.setStringProperty(WMQConstants.WMQ_MESSAGE_BODY, WMQConstants.WMQ_MESSAGE_BODY_MQ);
 
-
-
-                                   # GOOD - use these
-spring.jms.pub-sub-domain=false
-ibm.mq.target-client=MQ
-
-
-From IBM's own header files:
-
-c
-#define MQFMT_NONE          "        "  /* 8 spaces - NO FORMAT */
-#define MQFMT_RF_HEADER_2   "MQHRF2   "  /* 8 chars - RFH2 format */
-#define MQFMT_STRING        "MQSTR    "  /* 8 chars - String format */
-
-
-
-
-https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=mjmomm-mapping-jms-fields-onto-mq-fields-outgoing-messages
+// 2. Every message
+bytesMessage.setStringProperty("JMS_IBM_Format", "        "); // 8 spaces
+bytesMessage.setIntProperty("JMS_IBM_Encoding", 546);
+bytesMessage.setIntProperty("JMS_IBM_Character_Set", 37);
