@@ -13,3 +13,4 @@
 spring.jms.pub-sub-domain=false
 ibm.mq.target-client=MQ
 
+https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=mjmomm-mapping-jms-fields-onto-mq-fields-outgoing-messages
