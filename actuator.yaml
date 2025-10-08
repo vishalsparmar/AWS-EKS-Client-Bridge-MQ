@@ -1,5 +1,20 @@
- // Set MQMD format for Mainframe
-            message.setStringProperty(WMQConstants.JMS_IBM_FORMAT, WMQConstants.MQFMT_STRING);
-              // Set basic MQMD properties
-             message.setStringProperty(WMQConstants.JMS_IBM_FORMAT, WMQConstants.MQFMT_STRING);
-     
+mqMsg.setStringProperty("JMS_IBM_Format", "        ");
+
+// Explicit CCSID
+mqMsg.setIntProperty("JMS_IBM_Character_Set", 500);
+
+// Explicit encoding
+mqMsg.setIntProperty("JMS_IBM_Encoding", 
+WMQConstants.WMQ_ENCODING_NATIVE);
+
+
+/ CRITICAL: Prevent automatic MQFMT setting
+factory.setTargetClientMatching(WMQConstants.WMQ_TARGET_DEST_MQ);
+factory.setMessageBodyStyle(WMQConstants.WMQ_MESSAGE_BODY_MQ);
+
+// EBCDIC character set (500 = International, 37 = US)
+factory.setCCSID(500);
+
+// Native encoding for mainframe
+factory.setIntProperty(WMQConstants.WMQ_ENCODING, 
+WMQConstants.WMQ_ENCODING_NATIVE);
