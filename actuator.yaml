@@ -13,4 +13,15 @@
 spring.jms.pub-sub-domain=false
 ibm.mq.target-client=MQ
 
+
+From IBM's own header files:
+
+c
+#define MQFMT_NONE          "        "  /* 8 spaces - NO FORMAT */
+#define MQFMT_RF_HEADER_2   "MQHRF2   "  /* 8 chars - RFH2 format */
+#define MQFMT_STRING        "MQSTR    "  /* 8 chars - String format */
+
+
+
+
 https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=mjmomm-mapping-jms-fields-onto-mq-fields-outgoing-messages
