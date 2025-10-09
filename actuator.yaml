@@ -7,3 +7,6 @@ metrics:
           type: AverageValue
           averageValue: "1000"  # Scale if average exceeds 1000 msgs/min per pod
     - type: Resource
+
+
+penssl x509 -in certificate.crt -text -noout.
