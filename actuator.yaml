@@ -1,8 +1,2 @@
-// 1. Connection Factory
-factory.setTargetClient(1);
-factory.setStringProperty(WMQConstants.WMQ_MESSAGE_BODY, WMQConstants.WMQ_MESSAGE_BODY_MQ);
-
-// 2. Every message
-bytesMessage.setStringProperty("JMS_IBM_Format", "        "); // 8 spaces
-bytesMessage.setIntProperty("JMS_IBM_Encoding", 546);
-bytesMessage.setIntProperty("JMS_IBM_Character_Set", 37);
+# Get just hostnames
+kubectl get ingress -o custom-columns="HOST:.spec.rules[*].host" --no-headers
