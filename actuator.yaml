@@ -10,3 +10,9 @@ metrics:
 
 
 penssl x509 -in certificate.crt -text -noout.
+
+
+
+curl -L -o stern.zip https://github.com/stern/stern/releases/download/v1.27.0/stern_1.27.0_windows_amd64.zip
+unzip stern.zip
+mv stern.exe /usr/local/bin/
