@@ -1,21 +1,10 @@
-metrics:
-    - type: Pods
-      pods:
-        metric:
-          name: messages_processed_per_minute
-        target:
-          type: AverageValue
-          averageValue: "1000"  # Scale if average exceeds 1000 msgs/min per pod
-    - type: Resource
-
-
-penssl x509 -in certificate.crt -text -noout.
-
-
-
-curl -L -o stern.zip https://github.com/stern/stern/releases/download/v1.27.0/stern_1.27.0_windows_amd64.zip
-unzip stern.zip
-mv stern.exe /usr/local/bin/
-
-
-https://github.com/stern/stern/releases/download/v1.33.0/stern_1.33.0_windows_amd64.tar.gz
+affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - my-app
+            topologyKey: topology.kubernetes.io/zone
