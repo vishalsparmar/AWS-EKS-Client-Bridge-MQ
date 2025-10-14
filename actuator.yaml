@@ -8,3 +8,9 @@ affinity:
                 values:
                 - my-app
             topologyKey: topology.kubernetes.io/zone
+
+
+# Services with ports
+kubectl get svc --all-namespaces -o custom-columns="NAME:.metadata.name,NAMESPACE:.metadata.namespace,URL:.metadata.name\.\.metadata.namespace\.svc\.cluster\.local,PORT:.spec.ports[0].port" --no-headers
+
+
