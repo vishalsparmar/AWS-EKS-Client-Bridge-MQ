@@ -13,7 +13,12 @@ affinity:
 # Services with ports
 kubectl get svc --all-namespaces -o custom-columns="NAME:.metadata.name,NAMESPACE:.metadata.namespace,URL:.metadata.name\.\.metadata.namespace\.svc\.cluster\.local,PORT:.spec.ports[0].port" --no-headers
 
+kubectl get svc --all-namespaces -o jsonpath='{range .items[*]}{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[0].port}{"\n"}{end}'
+2. All Ports for Each Service
 
-# ClusterIP services only (internal communication)
-kubectl get svc --all-namespaces --field-selector spec.type=ClusterIP -o jsonpath='{range .items[*]}{$svc := .metadata.name}{$ns := .metadata.namespace}{range .spec.ports[*]}{if .port == 443 or .port == 8443}https://{$svc}.{$ns}.svc.cluster.local:{.port}{"\n"}{else}http://{$svc}.{$ns}.svc.cluster.local:{.port}{"\n"}{end}{end}{end}'
+bash
+kubectl get svc --all-namespaces -o json | jq -r '.items[] | .metadata.name as $svc | .metadata.namespace as $ns | .spec.ports[] | "\($svc).\($ns).svc.cluster.local:\(.port)"'
+3. With Service and Port Names
 
+bash
+kubectl get svc --all-namespaces -o json | jq -r '.items[] | .metadata.name as $svc | .metadata.namespace as $ns | .spec.ports[] | "\($svc).\($ns).svc.cluster.local:\(.port) (port: \(.name))"'
