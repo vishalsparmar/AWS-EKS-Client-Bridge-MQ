@@ -14,3 +14,6 @@ affinity:
 kubectl get svc --all-namespaces -o custom-columns="NAME:.metadata.name,NAMESPACE:.metadata.namespace,URL:.metadata.name\.\.metadata.namespace\.svc\.cluster\.local,PORT:.spec.ports[0].port" --no-headers
 
 
+# ClusterIP services only (internal communication)
+kubectl get svc --all-namespaces --field-selector spec.type=ClusterIP -o jsonpath='{range .items[*]}{$svc := .metadata.name}{$ns := .metadata.namespace}{range .spec.ports[*]}{if .port == 443 or .port == 8443}https://{$svc}.{$ns}.svc.cluster.local:{.port}{"\n"}{else}http://{$svc}.{$ns}.svc.cluster.local:{.port}{"\n"}{end}{end}{end}'
+
