@@ -1,13 +1,14 @@
-affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - my-app
-            topologyKey: topology.kubernetes.io/zone
+bash
+# Get ALL endpoints (including POST) from OpenAPI spec
+kubectl get pods --all-namespaces --field-selector=status.phase=Running -o json | jq -r '.items[] | "\(.metadata.namespace) \(.metadata.name)"' | while read ns pod; do
+  echo "=== $ns/$pod ==="
+  kubectl exec -n $ns $pod -- curl -s http://localhost:8080/v3/api-docs 2>/dev/null | jq -r '.paths | to_entries[] | "\(.key) \(.value | keys[])"' | grep -i post
+done
+2. Get Only POST Endpoints with Details
 
-
-kubectl get pods --all-namespaces --field-selector=status.phase=Running -o json | jq -r '.items[] | "\(.metadata.namespace) \(.metadata.name)"' | while read ns pod; do echo "=== Testing $ns/$pod ===" && kubectl exec -n $ns $pod -- sh -c 'for path in / /health /api /api/v1 /v1 /actuator /info /metrics /swagger-ui.html /v3/api-docs; do curl -s -o /dev/null -w "%{http_code} $path\n" http://localhost:8080$path; done' 2>/dev/null | grep -v "404"; done
+bash
+# Extract only POST endpoints with their paths
+kubectl get pods --all-namespaces --field-selector=status.phase=Running -o json | jq -r '.items[] | "\(.metadata.namespace) \(.metadata.name)"' | while read ns pod; do
+  echo "=== POST Endpoints for $ns/$pod ==="
+  kubectl exec -n $ns $pod -- curl -s http://localhost:8080/v3/api-docs 2>/dev/null | jq -r '.paths | to_entries[] | select(.value.post) | "POST \(.key)"'
+done
