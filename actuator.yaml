@@ -1,10 +1,15 @@
-ash
-kubectl exec <pod-name> -- sh -c "DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y telnet"
-Method 2: Set environment variables for non-interactive installation
-
-bash
-kubectl exec <pod-name> -- sh -c "export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y telnet"
-Method 3: Use the full command with all necessary flags
-
-bash
-kubectl exec <pod-name> -- sh -c "apt-get update && apt-get install -y --no-install-recommends --assume-yes telnet"
+apiVersion: v1
+kind: Pod
+metadata:
+  name: network-tools-pod
+spec:
+  containers:
+  - name: tools
+    image: alpine:latest
+    command: ["/bin/sh"]
+    args: 
+    - "-c"
+    - |
+      apk update
+      apk add busybox-extras curl wget netcat-openbsd
+      sleep infinity
