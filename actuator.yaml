@@ -1,14 +1,10 @@
-bash
-# Get ALL endpoints (including POST) from OpenAPI spec
-kubectl get pods --all-namespaces --field-selector=status.phase=Running -o json | jq -r '.items[] | "\(.metadata.namespace) \(.metadata.name)"' | while read ns pod; do
-  echo "=== $ns/$pod ==="
-  kubectl exec -n $ns $pod -- curl -s http://localhost:8080/v3/api-docs 2>/dev/null | jq -r '.paths | to_entries[] | "\(.key) \(.value | keys[])"' | grep -i post
-done
-2. Get Only POST Endpoints with Details
+ash
+kubectl exec <pod-name> -- sh -c "DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y telnet"
+Method 2: Set environment variables for non-interactive installation
 
 bash
-# Extract only POST endpoints with their paths
-kubectl get pods --all-namespaces --field-selector=status.phase=Running -o json | jq -r '.items[] | "\(.metadata.namespace) \(.metadata.name)"' | while read ns pod; do
-  echo "=== POST Endpoints for $ns/$pod ==="
-  kubectl exec -n $ns $pod -- curl -s http://localhost:8080/v3/api-docs 2>/dev/null | jq -r '.paths | to_entries[] | select(.value.post) | "POST \(.key)"'
-done
+kubectl exec <pod-name> -- sh -c "export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y telnet"
+Method 3: Use the full command with all necessary flags
+
+bash
+kubectl exec <pod-name> -- sh -c "apt-get update && apt-get install -y --no-install-recommends --assume-yes telnet"
