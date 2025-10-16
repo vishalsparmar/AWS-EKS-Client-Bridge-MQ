@@ -1,22 +1,53 @@
-apiVersion: v1
-kind: Pod
-metadata:
-  name: network-tools-pod
-spec:
-  containers:
-  - name: tools
-    image: alpine:latest
-    command: ["/bin/sh"]
-    args: 
-    - "-c"
-    - |
-      apk update
-      apk add busybox-extras curl wget netcat-openbsd
-      sleep infinity
-    resources:
-      requests:
-        memory: "64Mi"
-        cpu: "50m"
-      limits:
-        memory: "128Mi"
-        cpu: "100m"
+Get All Services
+
+bash
+curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/services" | jq '.'
+Get All Routes
+
+bash
+curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/routes" | jq '.'
+Get Services with Pretty JSON
+
+bash
+curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/services" | jq '.data[] | {id: .id, name: .name, url: .url}'
+Get Routes with Pretty JSON
+
+bash
+curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/routes" | jq '.data[] | {id: .id, name: .name, service: .service.name, paths: .paths}'
+Get Specific Service by Name
+
+bash
+curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/services/user-service" | jq '.'
+Get Specific Route by Name
+
+bash
+curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/routes/user-api-route" | jq '.'
+Get Routes for a Specific Service
+
+bash
+curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/services/user-service/routes" | jq '.'
+One-liner to test connection and list services
+
+bash
+curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/services" | jq -r '.data[]? | "Service: \(.name) - URL: \(.url)"'
+One-liner to test connection and list routes
+
+bash
+curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/routes" | jq -r '.data[]? | "Route: \(.name) - Service: \(.service.name) - Paths: \(.paths | join(", "))"'
+Complete status check (services + routes)
+
+bash
+echo "=== SERVICES ===" && curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/services" | jq -r '.data[]? | "• \(.name) - \(.url)"' && echo "=== ROUTES ===" && curl -s -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/routes" | jq -r '.data[]? | "• \(.name) -> \(.service.name) [\(.paths | join(", "))]"'
+Simple test if API is accessible
+
+bash
+curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $KONG_TOKEN" "https://eu.api.konghq.com/v2/control-planes/$KONG_CP_ID/core-entities/services"
+Note: Make sure to set your environment variables first:
+
+bash
+export KONG_CP_ID="your-cp-id"
+export KONG_TOKEN="your-token"
+Or replace $KONG_CP_ID and $KONG_TOKEN with your actual values in the commands.
+
+The jq command is used for pretty JSON formatting. If you don't have jq, you can remove the | jq '.' part to see the raw JSON response.
+
