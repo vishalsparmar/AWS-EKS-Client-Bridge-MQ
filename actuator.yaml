@@ -1,1 +1,25 @@
 kubectl get nodes -o wide --show-labels | grep -E "topology.kubernetes.io/zone|failure-domain.beta.kubernetes.io/zone"
+
+
+
+Most Practical AWS-Specific Command
+
+bash
+# Simple and effective
+kubectl get nodes -l topology.kubernetes.io/zone=eu-west-2a -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | \
+  while read node; do
+    echo "=== Pods on $node ==="
+    kubectl get pods -A --field-selector spec.nodeName=$node --no-headers
+  done
+Verifying AZ Labels in AWS:
+
+bash
+# Check what AZ labels are available
+kubectl get nodes -o json | jq -r '.items[0].metadata.labels | with_entries(select(.key | contains("zone")))'
+
+# Common AWS EKS labels:
+# - "topology.kubernetes.io/zone"
+# - "failure-domain.beta.kubernetes.io/zone"
+# - "eks.amazonaws.com/nodegroup" (for node groups)
+These commands will accurately show you all pods running in the eu-west-2a availability zone in your AWS EKS cluster.
+
