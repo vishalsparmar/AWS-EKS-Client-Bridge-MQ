@@ -1,11 +1,1 @@
-# Scale deployment directly first
-kubectl scale deployment <deployment-name> --replicas=15
-
-# Delete HPA
-kubectl delete hpa <hpa-name>
-
-# Verify deployment has 15 pods
-kubectl get pods -l app=<app-label>
-
-# If stuck, delete and recreate deployment
-kubectl delete deployment <deployment-name>
+kubectl get nodes -o wide --show-labels | grep -E "topology.kubernetes.io/zone|failure-domain.beta.kubernetes.io/zone"
