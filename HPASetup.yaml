@@ -1,159 +1,58 @@
-sed -i 's/\r$//' your-script.sh
-Here are the essential kubectl commands to check pod distribution across Availability Zones:
-
-1. Basic AZ Distribution Count
+For specific namespace:
 
 bash
-# Show pod count per AZ for ALL namespaces
-kubectl get pods -A -o wide | awk 'NR>1{print $8}' | sort | uniq -c | while read count node; do
-  az=$(kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' 2>/dev/null)
-  echo "AZ: $az, Node: $node, Pods: $count"
-done
-2. One-liner for Quick Overview
+kubectl get pods -n <namespace> -o json | jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | xargs -I {} kubectl get node {} -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' | sort | uniq -c
+With pod names:
 
 bash
-# Simple pod count per AZ
-kubectl get pods -A -o json | jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | \
-  sort | uniq -c | while read count node; do
-    az=$(kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}')
-    echo "AZ: $az - Pods: $count"
-  done | sort
-3. Detailed AZ Distribution with Pod Names
+kubectl get pods -n <namespace> -o json | jq -r '.items[] | select(.spec.nodeName != null) | "\(.metadata.name) \(.spec.nodeName)"' | while read pod node; do az=$(kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' | tr -d '\r'); echo "AZ: $az - Pod: $pod"; done | sort
+Usage Examples:
 
 bash
-# Show pods grouped by AZ with names
-kubectl get pods -A -o json | jq -r '.items[] | select(.spec.nodeName != null) | "\(.metadata.namespace) \(.metadata.name) \(.spec.nodeName)"' | \
-  while read ns pod node; do
-    az=$(kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}')
-    echo "AZ: $az | NS: $ns | Pod: $pod"
-  done | sort
-4. AZ Distribution Summary
+# Make script executable
+chmod +x pod-az-distribution.sh
 
-bash
-# Summary count per AZ
-echo "=== POD DISTRIBUTION ACROSS AZs ==="
-kubectl get pods -A -o json | \
-  jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | \
-  while read node; do
-    kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}'
-    echo
-  done | sort | uniq -c | sort -nr
-5. For Specific Namespace
+# Basic usage for specific namespace
+./pod-az-distribution.sh -n default
 
-bash
-# Check specific namespace
-NAMESPACE="default"
-echo "=== Pod distribution in namespace: $NAMESPACE ==="
-kubectl get pods -n $NAMESPACE -o json | \
-  jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | \
-  while read node; do
-    kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}'
-    echo
-  done | sort | uniq -c
-6. For Specific App/Deployment
+# Verbose mode with pod names
+./pod-az-distribution.sh -n my-namespace -v
 
-bash
-# Check pods with specific label
-LABEL="app=my-app"
-echo "=== Pod distribution for $LABEL ==="
-kubectl get pods -l $LABEL -A -o json | \
-  jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | \
-  while read node; do
-    kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}'
-    echo
-  done | sort | uniq -c
-7. With Percentage Distribution
+# All namespaces
+./pod-az-distribution.sh
 
-bash
-# Show percentage distribution
-TOTAL_PODS=$(kubectl get pods -A --no-headers | wc -l)
-echo "Total Pods: $TOTAL_PODS"
-echo "=== Distribution ==="
-
-kubectl get pods -A -o json | \
-  jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | \
-  while read node; do
-    kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}'
-    echo
-  done | sort | uniq -c | while read count az; do
-    percentage=$(echo "scale=2; $count * 100 / $TOTAL_PODS" | bc)
-    echo "AZ: $az - Pods: $count ($percentage%)"
-  done
-8. Real-time Watch Distribution
-
-bash
-# Watch pod distribution changes
-watch -n 5 '
-  echo "=== Current AZ Distribution ==="
-  kubectl get pods -A -o json | \
-    jq -r ".items[] | select(.spec.nodeName != null) | .spec.nodeName" | \
-    while read node; do
-      kubectl get node $node -o jsonpath="{.metadata.labels.topology\.kubernetes\.io/zone}"
-      echo
-    done | sort | uniq -c
-'
-9. Complete Distribution Report
-
-bash
-#!/bin/bash
-echo "========================================="
-echo "    CLUSTER AZ DISTRIBUTION REPORT"
-echo "========================================="
-
-# Total pods
-TOTAL_PODS=$(kubectl get pods -A --no-headers | wc -l)
-echo "Total Pods in Cluster: $TOTAL_PODS"
-echo ""
-
-# AZ distribution
-echo "--- Availability Zone Distribution ---"
-kubectl get pods -A -o json | \
-  jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | \
-  while read node; do
-    kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}'
-    echo
-  done | sort | uniq -c | sort -k2 | while read count az; do
-    percentage=$(echo "scale=1; $count * 100 / $TOTAL_PODS" | bc)
-    echo "  $az: $count pods (${percentage}%)"
-  done
-
-# Node distribution
-echo ""
-echo "--- Node Distribution ---"
-kubectl get nodes -o json | \
-  jq -r '.items[] | "\(.metadata.name) \(.metadata.labels.topology\.kubernetes\.io/zone)"' | \
-  sort -k2 | while read node az; do
-    pod_count=$(kubectl get pods -A --field-selector spec.nodeName=$node --no-headers | wc -l)
-    echo "  $az - $node: $pod_count pods"
-  done
-10. Most Practical One-liner
-
-bash
-# Quick and clean AZ distribution
-kubectl get pods -A -o json | \
-  jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | \
-  xargs -I {} kubectl get node {} -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' | \
-  sort | uniq -c
-Save as Script for Reuse:
-
-bash
-# Save as check-az-distribution.sh
-#!/bin/bash
-kubectl get pods -A -o json | \
-  jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | \
-  while read node; do
-    kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}'
-  done | sort | uniq -c | sort -k2
-Usage:
-
-bash
-chmod +x check-az-distribution.sh
-./check-az-distribution.sh
+# Quick one-liner for production namespace
+./pod-az-distribution.sh -n production
 Sample Output:
 
 text
-  15 eu-west-2a
-  14 eu-west-2b  
-  16 eu-west-2c
-This shows you have 15 pods in eu-west-2a, 14 in eu-west-2b, and 16 in eu-west-2c - nicely balanced!
+=== Pod Distribution in Namespace: default ===
+=== AVAILABILITY ZONE DISTRIBUTION SUMMARY ===
+Total Pods: 45
+
+AZ: eu-west-2a
+  Pod Count: 15 (33.33%)
+
+AZ: eu-west-2b  
+  Pod Count: 14 (31.11%)
+
+AZ: eu-west-2c
+  Pod Count: 16 (35.56%)
+
+=== BALANCE ANALYSIS ===
+Most loaded AZ: 16 pods
+Least loaded AZ: 14 pods
+Difference: 2 pods
+Balance Ratio: 87.50%
+Status: ✅ Well balanced
+This script:
+
+✅ Handles \r characters properly
+✅ Works with specific namespaces or all namespaces
+✅ Shows pod names in verbose mode
+✅ Provides balance analysis
+✅ Uses reliable JSON parsing
+✅ Includes error handling
+Save it as pod-az-distribution.sh and run with your namespace!
+
 
