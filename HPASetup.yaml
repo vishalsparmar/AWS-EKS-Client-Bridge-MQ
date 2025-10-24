@@ -1,58 +1,6 @@
-For specific namespace:
+kubectl get pods -n <namespace> -o wide | awk 'NR>1{print $7}' | grep -v '<none>' | xargs -I {} kubectl get node {} -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' | sort | uniq -c
+For All Namespaces (without jq):
 
 bash
-kubectl get pods -n <namespace> -o json | jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | xargs -I {} kubectl get node {} -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' | sort | uniq -c
-With pod names:
-
-bash
-kubectl get pods -n <namespace> -o json | jq -r '.items[] | select(.spec.nodeName != null) | "\(.metadata.name) \(.spec.nodeName)"' | while read pod node; do az=$(kubectl get node $node -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' | tr -d '\r'); echo "AZ: $az - Pod: $pod"; done | sort
-Usage Examples:
-
-bash
-# Make script executable
-chmod +x pod-az-distribution.sh
-
-# Basic usage for specific namespace
-./pod-az-distribution.sh -n default
-
-# Verbose mode with pod names
-./pod-az-distribution.sh -n my-namespace -v
-
-# All namespaces
-./pod-az-distribution.sh
-
-# Quick one-liner for production namespace
-./pod-az-distribution.sh -n production
+kubectl get pods -A -o wide | awk 'NR>1{print $7}' | grep -v '<none>' | xargs -I {} kubectl get node {} -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' | sort | uniq -c
 Sample Output:
-
-text
-=== Pod Distribution in Namespace: default ===
-=== AVAILABILITY ZONE DISTRIBUTION SUMMARY ===
-Total Pods: 45
-
-AZ: eu-west-2a
-  Pod Count: 15 (33.33%)
-
-AZ: eu-west-2b  
-  Pod Count: 14 (31.11%)
-
-AZ: eu-west-2c
-  Pod Count: 16 (35.56%)
-
-=== BALANCE ANALYSIS ===
-Most loaded AZ: 16 pods
-Least loaded AZ: 14 pods
-Difference: 2 pods
-Balance Ratio: 87.50%
-Status: ✅ Well balanced
-This script:
-
-✅ Handles \r characters properly
-✅ Works with specific namespaces or all namespaces
-✅ Shows pod names in verbose mode
-✅ Provides balance analysis
-✅ Uses reliable JSON parsing
-✅ Includes error handling
-Save it as pod-az-distribution.sh and run with your namespace!
-
-
