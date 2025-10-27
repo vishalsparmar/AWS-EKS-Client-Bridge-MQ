@@ -1,3 +1,12 @@
+helm template [RELEASE_NAME] [CHART] --values values.yaml
+
+# Example with specific chart
+helm template my-app ./my-chart --values values.yaml
+
+# Example from repo
+helm template my-app nginx --repo https://kubernetes.github.io/ingress-nginx --values values.yaml
+
+
 bash
 #!/bin/bash
 NAMESPACE="${1:-default}"
