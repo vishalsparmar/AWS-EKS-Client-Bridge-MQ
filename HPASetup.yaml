@@ -1,30 +1,29 @@
-#!/bin/bash
-AZ="eu-west-2c"
-echo "Simulating AZ failure for: $AZ"
+Here are 2 simple commands - one to verify cordon, one to verify uncordon:
 
-# 1. Cordon all nodes in the AZ
-echo "Cordoning nodes in $AZ..."
-kubectl cordon $(kubectl get nodes -l topology.kubernetes.io/zone=$AZ -o name)
+1. Verify Cordon Command
 
-# 2. Drain all nodes in the AZ
-echo "Draining nodes in $AZ..."
-for node in $(kubectl get nodes -l topology.kubernetes.io/zone=$AZ -o name); do
-  echo "Draining $node..."
-  kubectl drain $node --ignore-daemonsets --delete-emptydir-data --grace-period=300 --timeout=600s
-done
+bash
+# Check if nodes in eu-west-2c are cordoned (should show 'true')
+kubectl get nodes -l topology.kubernetes.io/zone=eu-west-2c -o custom-columns="NAME:.metadata.name,CORDONED:.spec.unschedulable"
+Expected output when CORRECTLY CORDONED:
 
-# 3. Verify no pods running in the AZ
-echo "Verifying no pods in $AZ..."
-kubectl get pods -A -o wide | grep $AZ
+text
+NAME                                          CORDONED
+ip-10-0-1-100.eu-west-2c.compute.internal    true
+ip-10-0-1-101.eu-west-2c.compute.internal    true
+2. Verify Uncordon Command
 
-echo "AZ failure simulation complete for $AZ"
+bash
+# Check if nodes in eu-west-2c are uncordoned (should show 'false' or '<none>')
+kubectl get nodes -l topology.kubernetes.io/zone=eu-west-2c -o custom-columns="NAME:.metadata.name,CORDONED:.spec.unschedulable"
+Expected output when CORRECTLY UNCORDONED:
 
+text
+NAME                                          CORDONED
+ip-10-0-1-100.eu-west-2c.compute.internal    false
+ip-10-0-1-101.eu-west-2c.compute.internal    false
+Quick Interpretation:
 
-
-# Check nodes are schedulable again
-kubectl get nodes -o custom-columns="NAME:.metadata.name,UNSCHEDULABLE:.spec.unschedulable"
-
-# Should show "false" or "<none>" for all nodes
-
-# Check all nodes and their cordon status
-kubectl get nodes -o custom-columns="NAME:.metadata.name,ZONE:.metadata.labels.topology\.kubernetes\.io/zone,CORDONED:.spec.unschedulable"
+true = Cordoned (no new pods)
+false or <none> = Uncordoned (accepting new pods)
+These two commands give you immediate visual confirmation of whether your cordon/uncordon operations worked correctly.
