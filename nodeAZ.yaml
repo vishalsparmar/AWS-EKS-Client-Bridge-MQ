@@ -1,0 +1,38 @@
+Custom Columns (Recommended)
+
+bash
+kubectl get nodes -o custom-columns="NAME:.metadata.name,AZ:.metadata.labels.topology\.kubernetes\.io/zone,INSTANCE:.metadata.labels.node\.kubernetes\.io/instance-type,AGE:.metadata.creationTimestamp"
+2. Wide Output with Labels
+
+bash
+kubectl get nodes --show-labels | grep -E "NAME|topology.kubernetes.io/zone|node.kubernetes.io/instance-type"
+3. Simple Custom View
+
+bash
+kubectl get nodes -o custom-columns="NODE:.metadata.name,ZONE:.metadata.labels.topology\.kubernetes\.io/zone,TYPE:.metadata.labels.node\.kubernetes\.io/instance-type"
+4. With Status and Age
+
+bash
+kubectl get nodes -o custom-columns="NAME:.metadata.name,STATUS:.status.conditions[?(@.type=='Ready')].status,AZ:.metadata.labels.topology\.kubernetes\.io/zone,INSTANCE:.metadata.labels.node\.kubernetes\.io/instance-type,AGE:.metadata.creationTimestamp"
+5. Watch New Nodes in Real-time
+
+bash
+kubectl get nodes -o custom-columns="NAME:.metadata.name,AZ:.metadata.labels.topology\.kubernetes\.io/zone,INSTANCE:.metadata.labels.node\.kubernetes\.io/instance-type,AGE:.metadata.creationTimestamp" --watch
+6. Sorted by AZ
+
+bash
+kubectl get nodes -o custom-columns="NAME:.metadata.name,AZ:.metadata.labels.topology\.kubernetes\.io/zone,INSTANCE:.metadata.labels.node\.kubernetes\.io/instance-type" --sort-by=.metadata.labels.topology\.kubernetes\.io/zone
+7. Count Nodes per AZ
+
+bash
+kubectl get nodes -o custom-columns="AZ:.metadata.labels.topology\.kubernetes\.io/zone" --no-headers | sort | uniq -c
+Example Output:
+
+text
+NAME                                          AZ         INSTANCE       AGE
+ip-10-0-1-100.us-west-2.compute.internal     us-west-2a m5.xlarge      2024-01-15T10:30:00Z
+ip-10-0-2-200.us-west-2.compute.internal     us-west-2b m5.2xlarge     2024-01-15T10:31:00Z
+ip-10-0-3-150.us-west-2.compute.internal     us-west-2c m6i.xlarge     2024-01-15T10:32:00Z
+The first command is the most useful for quickly seeing all nodes, their AZs, and instance types in a clean format.
+
+
