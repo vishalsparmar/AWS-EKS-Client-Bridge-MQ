@@ -1,42 +1,20 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: jms-service
-spec:
-  replicas: 6  # Must be even number for perfect balance
-  template:
-    spec:
-      # 1. Restrict to specific AZs
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: topology.kubernetes.io/zone
-                operator: In
-                values: ["eu-west-2a", "eu-west-2b"]
-      
-      # 2. Enforce equal distribution across AZs
-      topologySpreadConstraints:
-      - maxSkew: 1
-        topologyKey: topology.kubernetes.io/zone
-        whenUnsatisfiable: DoNotSchedule  # Strict enforcement
-        labelSelector:
-          matchLabels:
-            app: jms-service
-      
-      # 3. Optional: Also spread across nodes within AZ
-      - maxSkew: 2
-        topologyKey: kubernetes.io/hostname
-        whenUnsatisfiable: ScheduleAnyway
-        labelSelector:
-          matchLabels:
-            app: jms-service
-      
-      containers:
-      - name: jms-app
-        image: your-jms-app
-        resources:
-          requests:
-            cpu: "500m"
-            memory: "1Gi"
+#!/bin/bash
+AZ="eu-west-2c"
+echo "Simulating AZ failure for: $AZ"
+
+# 1. Cordon all nodes in the AZ
+echo "Cordoning nodes in $AZ..."
+kubectl cordon $(kubectl get nodes -l topology.kubernetes.io/zone=$AZ -o name)
+
+# 2. Drain all nodes in the AZ
+echo "Draining nodes in $AZ..."
+for node in $(kubectl get nodes -l topology.kubernetes.io/zone=$AZ -o name); do
+  echo "Draining $node..."
+  kubectl drain $node --ignore-daemonsets --delete-emptydir-data --grace-period=300 --timeout=600s
+done
+
+# 3. Verify no pods running in the AZ
+echo "Verifying no pods in $AZ..."
+kubectl get pods -A -o wide | grep $AZ
+
+echo "AZ failure simulation complete for $AZ"
