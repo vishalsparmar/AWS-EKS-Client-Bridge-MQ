@@ -1,0 +1,661 @@
+
+Skyth machone i want ot use for
+EKS Spot Instances and AZ Failover Solutions
+how to delete all rs in kubectl
+Pepsi Max Harmful to Teeth Explained
+EKS Microservice Node Isolation Strategies
+MQJE 2537 error from pod jms se
+December 20th onwards 7 days Lon
+East london area what to sow flo
+kong data plane in eks aww , kon
+Kong Konnect YAML Service Deployment Script
+Separating EKS Nodes for Resource-Intensive Apps
+Analyzing CPU Limits and Configuring HPA
+IBM Mainframe MQ JMS Connection Error Fix
+Install Selene in NGINX Pod via Exec
+Fat-Free, Sugar-Free, High-Protein Vegetarian Diet Guide
+Top Healthy Electrolyte Options in the UK
+stern ubectl filter on specific
+check this script and validate w
+Bash Script for Kong EU Setup
+kong sås control plane , data la
+Testing AWS AZ Failover Simplified
+uk vegetarian protein powder cle
+JMS Load Balancing for Microservices Setup
+Understanding SIP, SOP, and 9210 Payment Codes
+Enforce Pod Subnet Affinity in Kubernetes
+I have jus listernpods which sen
+I have in eks container mq qmgr
+Indian-Style Rice with High Protein
+Best Stocks for £20,000 ISA Investment
+Create AI image of badminton action
+Homemade Hummus Recipe with Ingredients
+who is vishwakarma
+EKS Spot Instances and AZ Failover Solutions
+So i have els aws spring jms service and spot instances so when i failover one az my pods dont scale up with cpu likit wrror .what node poolot in krpemter can i ise and which yype of instances i can use
+This sounds like a classic spot instance interruption issue combined with AZ failover challenges. Here are the recommended approaches for your EKS cluster:
+
+Node Pool Strategies for Spot Instances with AZ Failover
+
+1. Mixed Instance Types Node Pool
+
+yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: your-cluster
+  region: us-west-2
+
+nodeGroups:
+  - name: spot-mixed-az
+    instanceTypes:  # Spread across multiple instance families
+      - m5.large
+      - m5a.large
+      - m5d.large
+      - t3.large
+      - t3a.large
+    spot: true
+    minSize: 3
+    maxSize: 20
+    desiredCapacity: 6
+    availabilityZones: ["us-west-2a", "us-west-2b", "us-west-2c"]
+    labels:
+      lifecycle: Ec2Spot
+    taints:
+      - key: spot-instance
+        value: "true"
+        effect: NoSchedule
+2. Multiple Spot Node Pools (Recommended)
+
+Create separate node pools for different instance families and AZs:
+
+yaml
+nodeGroups:
+  - name: spot-m5-multi-az
+    instanceTypes: ["m5.large", "m5.xlarge"]
+    spot: true
+    minSize: 2
+    maxSize: 10
+    availabilityZones: ["us-west-2a", "us-west-2b"]
+    
+  - name: spot-t3-multi-az  
+    instanceTypes: ["t3.large", "t3.xlarge"]
+    spot: true
+    minSize: 2
+    maxSize: 10
+    availabilityZones: ["us-west-2b", "us-west-2c"]
+    
+  - name: spot-m4-multi-az
+    instanceTypes: ["m4.large", "m4.xlarge"]
+    spot: true
+    minSize: 2
+    maxSize: 10
+    availabilityZones: ["us-west-2a", "us-west-2c"]
+3. Add On-Demand Fallback Node Pool
+
+yaml
+  - name: od-fallback
+    instanceTypes: ["m5.large"]
+    spot: false
+    minSize: 1
+    maxSize: 5
+    availabilityZones: ["us-west-2a", "us-west-2b", "us-west-2c"]
+Instance Type Recommendations
+
+Best for Spot Instances:
+
+General Purpose: m5, m5a, m6i series
+Compute Optimized: c5, c5a, c6i series
+Memory Optimized: r5, r5a, r6i series
+Avoid for Spot:
+
+Older generations (m3, c3, r3)
+GPU instances (more expensive, less available)
+Critical Configuration for JMS Service
+
+1. Pod Disruption Budget
+
+yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: jms-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: jms-service
+2. Node Affinity/Anti-Affinity
+
+yaml
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: lifecycle
+            operator: In
+            values:
+            - Ec2Spot
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - jms-service
+          topologyKey: kubernetes.io/hostname
+3. HPA Configuration
+
+yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: jms-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: jms-service
+  minReplicas: 3  # Minimum for high availability
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+Troubleshooting Steps
+
+Check current node distribution:
+
+bash
+kubectl get nodes -o wide
+kubectl describe nodes
+Verify cluster autoscaler logs:
+
+bash
+kubectl logs -f deployment/cluster-autoscaler -n kube-system
+Monitor spot interruptions:
+
+bash
+kubectl get events --sort-by='.lastTimestamp' -A | grep -i spot
+The multiple spot node pools approach is most resilient because it diversifies across instance families and AZs, reducing the blast radius when spot capacity changes occur.
+I dont want spot but instances which has cpu already so can scale when i do az failocer and allocate pods wasily. Is on demand good or suggest type of instance for my 150 tps send tecieve messages queue
+For your JMS service handling 150 TPS with AZ failover requirements, On-Demand instances are definitely the better choice over spot instances for guaranteed capacity during failovers.
+
+Recommended On-Demand Instance Strategy
+
+1. Node Pool Configuration for High Availability
+
+yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: jms-cluster
+  region: us-west-2
+
+managedNodeGroups:
+  - name: jms-ondemand-main
+    instanceTypes: ["m5.xlarge", "m5.2xlarge"]  # Good balance of CPU and memory
+    minSize: 3
+    maxSize: 15
+    desiredCapacity: 4
+    availabilityZones: ["us-west-2a", "us-west-2b", "us-west-2c"]
+    labels:
+      workload: jms-critical
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/jms-cluster: "owned"
+2. Instance Type Recommendations for 150 TPS JMS
+
+Primary Recommendations:
+
+m5.xlarge (4 vCPU, 16GB RAM) - Good starting point
+m5.2xlarge (8 vCPU, 32GB RAM) - Better for burst handling
+m6i.xlarge (4 vCPU, 16GB RAM) - Latest gen, better performance
+Why these instances:
+
+Consistent CPU performance - No interruptions
+Good network performance - Important for JMS messaging
+Adequate memory - For message buffering and Spring application
+Multiple AZ support - Instant capacity when needed
+3. Multi-AZ Distribution for Failover
+
+yaml
+nodeGroups:
+  # Spread across AZs with immediate capacity
+  - name: jms-az-a
+    instanceTypes: ["m5.xlarge"]
+    minSize: 1
+    maxSize: 6
+    availabilityZones: ["us-west-2a"]
+    
+  - name: jms-az-b  
+    instanceTypes: ["m5.xlarge"]
+    minSize: 1
+    maxSize: 6
+    availabilityZones: ["us-west-2b"]
+    
+  - name: jms-az-c
+    instanceTypes: ["m5.xlarge"]
+    minSize: 1
+    maxSize: 6
+    availabilityZones: ["us-west-2c"]
+4. Capacity Planning for 150 TPS
+
+Estimated Requirements:
+
+3-4 nodes of m5.xlarge should handle 150 TPS comfortably
+Keep 30-40% headroom for failover scenarios
+Plan for 50% extra capacity during AZ failover
+5. Optimized Deployment for JMS
+
+yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jms-service
+spec:
+  replicas: 4  # Spread across AZs
+  selector:
+    matchLabels:
+      app: jms-service
+  template:
+    metadata:
+      labels:
+        app: jms-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - jms-service
+              topologyKey: topology.kubernetes.io/zone
+      containers:
+      - name: jms-app
+        image: your-jms-service
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+6. HPA Configuration for Smooth Scaling
+
+yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: jms-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: jms-service
+  minReplicas: 4
+  maxReplicas: 12
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 65
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+7. Cluster Autoscaler Configuration
+
+Ensure your cluster autoscaler is properly configured:
+
+yaml
+# cluster-autoscaler deployment args
+- --balance-similar-node-groups
+- --skip-nodes-with-local-storage=false
+- --expander=random
+- --scale-down-unneeded-time=10m
+- --scale-down-delay-after-add=5m
+Benefits of This Approach:
+
+✅ Guaranteed capacity during AZ failovers
+✅ Immediate scaling - no waiting for spot capacity
+✅ Consistent performance for JMS messaging
+✅ Multi-AZ redundancy
+✅ Predictable costs
+✅ Quick pod allocation during failovers
+
+Cost Optimization:
+
+Use Savings Plans for 40-50% cost reduction vs. pure On-Demand
+Consider Compute Savings Plans for flexibility across instance families
+Monitor and right-size based on actual usage patterns
+For your 150 TPS JMS service with AZ failover requirements, this On-Demand approach will provide the reliability and immediate scaling capability you need.
+Karpentrnode. Pooling how to incorporate above
+Here's how to implement the Karpenter node pooling strategy for your JMS service with On-Demand instances:
+
+Karpenter NodePool Configuration
+
+1. Karpenter NodePool for JMS Workload
+
+yaml
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: jms-ondemand-nodepool
+spec:
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: 720h # 30 days
+  template:
+    metadata:
+      labels:
+        workload: jms-critical
+        karpenter.sh/nodepool: jms-ondemand
+    spec:
+      requirements:
+        # On-Demand instances only
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+        
+        # Instance families optimized for JMS
+        - key: "node.kubernetes.io/instance-type"
+          operator: In
+          values: ["m5.xlarge", "m5.2xlarge", "m6i.xlarge", "m6i.2xlarge"]
+        
+        # Spread across multiple AZs
+        - key: "topology.kubernetes.io/zone"
+          operator: In
+          values: ["us-west-2a", "us-west-2b", "us-west-2c"]
+        
+        # x86 architecture
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+      
+      # Resource configuration
+      kubelet:
+        maxPods: 110
+        systemReserved:
+          cpu: 100m
+          memory: 512Mi
+          ephemeral-storage: 5Gi
+        kubeReserved:
+          cpu: 100m
+          memory: 512Mi
+          ephemeral-storage: 5Gi
+      
+      nodeClassRef:
+        name: default
+---
+apiVersion: karpenter.k8s.aws/v1beta1
+kind: EC2NodeClass
+metadata:
+  name: default
+spec:
+  amiFamily: AL2
+  role: "KarpenterNodeRole-${CLUSTER_NAME}"
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: "${CLUSTER_NAME}"
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: "${CLUSTER_NAME}"
+  tags:
+    karpenter.sh/discovery: "${CLUSTER_NAME}"
+    workload: jms-critical
+2. Multi-NodePool Strategy for AZ Distribution
+
+yaml
+# Primary NodePool for balanced distribution
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: jms-primary-pool
+spec:
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+  template:
+    metadata:
+      labels:
+        workload: jms-primary
+    spec:
+      requirements:
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+        - key: "node.kubernetes.io/instance-type"
+          operator: In
+          values: ["m5.xlarge", "m5.2xlarge", "m6i.xlarge"]
+        - key: "topology.kubernetes.io/zone"
+          operator: In
+          values: ["us-west-2a", "us-west-2b", "us-west-2c"]
+      kubelet:
+        maxPods: 110
+---
+# Fallback NodePool with broader instance types
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: jms-fallback-pool
+spec:
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+  weight: 10  # Lower priority
+  template:
+    metadata:
+      labels:
+        workload: jms-fallback
+    spec:
+      requirements:
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+        - key: "node.kubernetes.io/instance-type"
+          operator: In
+          values: ["m5.4xlarge", "m6i.4xlarge", "c5.2xlarge", "c6i.2xlarge"]
+        - key: "topology.kubernetes.io/zone"
+          operator: In
+          values: ["us-west-2a", "us-west-2b", "us-west-2c"]
+3. JMS Deployment with Node Selectors
+
+yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jms-service
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: jms-service
+  template:
+    metadata:
+      labels:
+        app: jms-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - jms-service
+              topologyKey: topology.kubernetes.io/zone
+      nodeSelector:
+        workload: jms-primary
+      containers:
+      - name: jms-app
+        image: your-jms-service:latest
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        env:
+        - name: SPRING_JMS_CACHE_LEVEL
+          value: "3"
+---
+# HPA for JMS Service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: jms-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: jms-service
+  minReplicas: 4
+  maxReplicas: 12
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+4. Karpenter Provisioner Setup (if using older API)
+
+yaml
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: jms-provisioner
+spec:
+  requirements:
+    - key: karpenter.sh/capacity-type
+      operator: In
+      values: ["on-demand"]
+    - key: kubernetes.io/arch
+      operator: In
+      values: ["amd64"]
+    - key: node.kubernetes.io/instance-type
+      operator: In
+      values: ["m5.xlarge", "m5.2xlarge", "m6i.xlarge", "m6i.2xlarge"]
+    - key: topology.kubernetes.io/zone
+      operator: In
+      values: ["us-west-2a", "us-west-2b", "us-west-2c"]
+  
+  kubeletConfiguration:
+    maxPods: 110
+    systemReserved:
+      cpu: 100m
+      memory: 512Mi
+    kubeReserved:
+      cpu: 100m
+      memory: 512Mi
+  
+  labels:
+    workload: jms-critical
+    karpenter.sh/provisioner-name: jms-provisioner
+  
+  ttlSecondsAfterEmpty: 60
+  ttlSecondsUntilExpired: 2592000 # 30 days
+  
+  providerRef:
+    name: jms-aws
+---
+apiVersion: karpenter.k8s.aws/v1alpha1
+kind: AWSNodeTemplate
+metadata:
+  name: jms-aws
+spec:
+  subnetSelector:
+    karpenter.sh/discovery: "${CLUSTER_NAME}"
+  securityGroupSelector:
+    karpenter.sh/discovery: "${CLUSTER_NAME}"
+  tags:
+    karpenter.sh/discovery: "${CLUSTER_NAME}"
+    workload: jms-critical
+5. Installation and Setup Commands
+
+Install Karpenter:
+
+bash
+# Add Karpenter Helm repository
+helm repo add karpenter https://charts.karpenter.sh
+helm repo update
+
+# Install Karpenter
+helm upgrade --install karpenter karpenter/karpenter \
+  --namespace karpenter \
+  --create-namespace \
+  --set serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${KARPENTER_IAM_ROLE_ARN} \
+  --set clusterName=${CLUSTER_NAME} \
+  --set clusterEndpoint=${CLUSTER_ENDPOINT} \
+  --wait
+Verify Installation:
+
+bash
+# Check Karpenter pods
+kubectl get pods -n karpenter
+
+# Check NodePools
+kubectl get nodepools
+
+# Check EC2NodeClass
+kubectl get ec2nodeclass
+6. Testing AZ Failover
+
+bash
+# Scale up to test AZ distribution
+kubectl scale deployment jms-service --replicas=8
+
+# Check node distribution across AZs
+kubectl get nodes -o wide | grep -E "NAME|jms"
+
+# Check which AZs are being used
+kubectl get nodes -o json | jq -r '.items[] | .metadata.labels["topology.kubernetes.io/zone"]' | sort | uniq -c
+Key Benefits with Karpenter:
+
+✅ Instant node provisioning during AZ failovers
+✅ Optimal instance selection based on actual pod requirements
+✅ Multi-AZ awareness out of the box
+✅ Cost optimization through consolidation
+✅ Better bin packing than cluster autoscaler
+✅ Fast scale-up (typically 30-60 seconds for new nodes)
