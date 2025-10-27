@@ -1,3 +1,42 @@
-  - key: "node.kubernetes.io/instance-family"
-          operator: In
-          values: ["m5", "m6i", "m6a", "m7g", "c5", "c6i", "c6a", "c7g"]
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jms-service
+spec:
+  replicas: 6  # Must be even number for perfect balance
+  template:
+    spec:
+      # 1. Restrict to specific AZs
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values: ["eu-west-2a", "eu-west-2b"]
+      
+      # 2. Enforce equal distribution across AZs
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule  # Strict enforcement
+        labelSelector:
+          matchLabels:
+            app: jms-service
+      
+      # 3. Optional: Also spread across nodes within AZ
+      - maxSkew: 2
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: jms-service
+      
+      containers:
+      - name: jms-app
+        image: your-jms-app
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
