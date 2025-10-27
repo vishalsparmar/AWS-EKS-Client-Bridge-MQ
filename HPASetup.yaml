@@ -18,3 +18,10 @@ echo "Verifying no pods in $AZ..."
 kubectl get pods -A -o wide | grep $AZ
 
 echo "AZ failure simulation complete for $AZ"
+
+
+
+# Check nodes are schedulable again
+kubectl get nodes -o custom-columns="NAME:.metadata.name,UNSCHEDULABLE:.spec.unschedulable"
+
+# Should show "false" or "<none>" for all nodes
