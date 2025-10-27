@@ -1,176 +1,54 @@
-. Root Cause
-
-When eu-west-2a fails, CoreDNS pods in that AZ become unreachable, but Kubernetes service endpoints might still point to them.
-
-2. Immediate Fix - Check CoreDNS Distribution
-
-bash
-# Check where CoreDNS pods are running
-kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide
-
-# Check which AZs have CoreDNS pods
-kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide | awk '{print $7}' | xargs -I {} kubectl get node {} -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' && echo
-3. Force CoreDNS to Multiple AZs
-
-Add Pod Anti-Affinity:
-
-yaml
-# Patch CoreDNS deployment for multi-AZ spread
-kubectl patch deployment coredns -n kube-system -p '{
-  "spec": {
-    "template": {
-      "spec": {
-        "affinity": {
-          "podAntiAffinity": {
-            "requiredDuringSchedulingIgnoredDuringExecution": [
-              {
-                "labelSelector": {
-                  "matchExpressions": [
-                    {
-                      "key": "k8s-app",
-                      "operator": "In",
-                      "values": ["kube-dns"]
-                    }
-                  ]
-                },
-                "topologyKey": "topology.kubernetes.io/zone"
-              }
-            ]
-          }
-        }
-      }
-    }
-  }
-}'
-Scale CoreDNS:
-
-bash
-# Scale CoreDNS to have pods in each AZ
-kubectl scale deployment coredns -n kube-system --replicas=6
-4. Check Service Endpoints
-
-bash
-# Check kube-dns service endpoints
-kubectl get endpoints kube-dns -n kube-system
-
-# Verify endpoints are spread across AZs
-kubectl get endpoints kube-dns -n kube-system -o yaml | grep ip
-5. NodeLocal DNS Cache (Recommended)
-
-Set up NodeLocal DNS cache to prevent AZ dependency:
-
-yaml
-apiVersion: apps/v1
-kind: DaemonSet
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
-  name: nodelocaldns
-  namespace: kube-system
-  labels:
-    k8s-app: nodelocaldns
+  name: jms-current-gen
 spec:
-  selector:
-    matchLabels:
-      k8s-app: nodelocaldns
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: 720h
   template:
     metadata:
       labels:
-        k8s-app: nodelocaldns
+        workload: jms-critical
+        instance-generation: "current"
     spec:
-      priorityClassName: system-node-critical
-      hostNetwork: true
-      tolerations:
-      - effect: NoSchedule
-        operator: Exists
-      - effect: NoExecute
-        operator: Exists
-      containers:
-      - name: node-cache
-        image: registry.k8s.io/dns/k8s-dns-node-cache:1.22.20
+      requirements:
+        # On-Demand instances only
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+        
+        # Current generation instances (5th, 6th, 7th gen)
+        - key: "karpenter.k8s.aws/instance-generation"
+          operator: In
+          values: ["5", "6", "7"]
+        
+        # Specific instance families for JMS
+        - key: "node.kubernetes.io/instance-family"
+          operator: In
+          values: ["m5", "m6i", "m7i", "m6a", "m6in"]
+        
+        # Spread across 3 AZs
+        - key: "topology.kubernetes.io/zone"
+          operator: In
+          values: ["us-west-2a", "us-west-2b", "us-west-2c"]
+        
+        # x86 architecture
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+      
+      # Limits to ensure 2 nodes per AZ (6 total)
+      limits:
         resources:
-          requests:
-            cpu: 25m
-            memory: 5Mi
-        args:
-        - -localip
-        - 169.254.20.10
-        - -conf
-        - /etc/coredns/Corefile
-        - -upstreamsvc
-        - kube-dns
-        ports:
-        - containerPort: 53
-          name: dns
-          protocol: UDP
-        - containerPort: 53
-          name: dns-tcp
-          protocol: TCP
-        livenessProbe:
-          httpGet:
-            host: 169.254.20.10
-            path: /health
-            port: 8080
-            scheme: HTTP
-          initialDelaySeconds: 60
-          timeoutSeconds: 5
-6. Temporary Workaround During Outage
-
-bash
-# Manually delete CoreDNS pods in failed AZ
-kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide | grep eu-west-2a | awk '{print $1}' | xargs kubectl delete pod -n kube-system
-
-# Or cordon the problematic AZ
-kubectl get nodes -l topology.kubernetes.io/zone=eu-west-2a -o name | xargs kubectl cordon
-7. Preventative Configuration
-
-Update CoreDNS ConfigMap:
-
-yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: coredns
-  namespace: kube-system
-data:
-  Corefile: |
-    .:53 {
-        errors
-        health {
-           lameduck 5s
-        }
-        ready
-        kubernetes cluster.local in-addr.arpa ip6.arpa {
-           pods insecure
-           fallthrough in-addr.arpa ip6.arpa
-           ttl 30
-        }
-        prometheus :9153
-        forward . /etc/resolv.conf {
-           max_concurrent 1000
-        }
-        cache 30
-        loop
-        reload
-        loadbalance   # Add this for DNS load balancing
-    }
-8. Verify Fix
-
-bash
-# After changes, verify CoreDNS distribution
-kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide | \
-  awk 'NR>1{print $7}' | \
-  xargs -I {} kubectl get node {} -o jsonpath='{.metadata.labels.topology\.kubernetes\.io/zone}' | \
-  sort | uniq -c
-
-# Test DNS resolution during AZ failure simulation
-kubectl run dns-test --image=busybox --rm -it --restart=Never -- \
-  sh -c "while true; do nslookup kubernetes.default.svc.cluster.local; sleep 5; done"
-9. AWS-Specific DNS Settings
-
-bash
-# Check if using Amazon DNS server in VPC
-aws ec2 describe-vpcs --vpc-ids <your-vpc> --query 'Vpcs[0].DhcpOptionsId'
-
-# Ensure VPC DNS settings are correct
-# Should use AmazonProvidedDNS or your own resolvers in each AZ
-The key is ensuring CoreDNS pods are distributed across ALL AZs and implementing NodeLocal DNS cache to handle AZ failures gracefully.
-
+          cpu: 48  # Limits total CPU across all nodes
+          memory: 192Gi
+  
+      kubelet:
+        maxPods: 110
+        systemReserved:
+          cpu: 100m
+          memory: 512Mi
+        kubeReserved:
+          cpu: 100m
+          memory: 512Mi
