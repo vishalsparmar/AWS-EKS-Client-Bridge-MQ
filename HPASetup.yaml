@@ -25,3 +25,6 @@ echo "AZ failure simulation complete for $AZ"
 kubectl get nodes -o custom-columns="NAME:.metadata.name,UNSCHEDULABLE:.spec.unschedulable"
 
 # Should show "false" or "<none>" for all nodes
+
+# Check all nodes and their cordon status
+kubectl get nodes -o custom-columns="NAME:.metadata.name,ZONE:.metadata.labels.topology\.kubernetes\.io/zone,CORDONED:.spec.unschedulable"
