@@ -1,3 +1,67 @@
+bash
+# Deployments with spec.replicas > 0
+kubectl get deployments -A -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}'
+2. With Headers (Better Readability)
+
+bash
+# With column headers
+echo -e "NAMESPACE\tDEPLOYMENT\tREPLICAS" && kubectl get deployments -A -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}' | column -t
+3. Including Ready Replicas
+
+bash
+# Show both desired and ready replicas
+echo -e "NAMESPACE\tDEPLOYMENT\tDESIRED\tREADY" && kubectl get deployments -A -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\t"}{.status.readyReplicas}{"\n"}{end}' | column -t
+4. Custom Columns Approach
+
+bash
+# Using custom columns and awk
+kubectl get deployments -A -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name,REPLICAS:.spec.replicas" --no-headers | awk '$3 > 0'
+Find ReplicaSets with Replicas > 0
+
+5. ReplicaSets with Replicas
+
+bash
+# ReplicaSets with replicas > 0
+kubectl get replicasets -A -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}'
+Most Practical Commands
+
+6. One-Liner for Daily Use
+
+bash
+# Clean output with headers
+{ echo -e "NAMESPACE\tDEPLOYMENT\tREPLICAS"; kubectl get deployments -A -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}'; } | column -t
+7. For Specific Namespace
+
+bash
+# In default namespace only
+kubectl get deployments -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}'
+
+# In specific namespace
+kubectl get deployments -n your-namespace -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}'
+Advanced Filtering
+
+8. With Additional Status Info
+
+bash
+# Include availability status
+echo -e "NAMESPACE\tDEPLOYMENT\tDESIRED\tREADY\tAVAILABLE" && kubectl get deployments -A -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\t"}{.status.readyReplicas}{"\t"}{.status.availableReplicas}{"\n"}{end}' | column -t
+9. Sort by Replica Count
+
+bash
+# Sort by number of replicas (highest first)
+{ echo -e "NAMESPACE\tDEPLOYMENT\tREPLICAS"; kubectl get deployments -A -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}'; } | sort -k3 -nr | column -t
+Best Command for Quick Check
+
+10. Simple and Effective
+
+bash
+kubectl get deployments -A -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.namespace}/{.metadata.name}: {.spec.replicas} replicas{"\n"}{end}'
+Command #2 is probably the most useful - it gives you a clean table with headers showing all deployments across all namespaces that have replicas configured (greater than 0).
+
+
+
+
+
 Here are 2 simple commands - one to verify cordon, one to verify uncordon:
 
 # Normal delete first
