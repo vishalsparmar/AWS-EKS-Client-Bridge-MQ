@@ -7,6 +7,11 @@ kubectl delete namespace test-env
 kubectl patch namespace test-env -p '{"metadata":{"finalizers":[]}}' --type=merge
 
 
+# Replace "stuck-namespace" with your actual namespace name
+kubectl get namespace stuck-namespace -o json | \
+  jq 'del(.spec.finalizers)' | \
+  kubectl replace --raw "/api/v1/namespaces/stuck-namespace/finalize" -f -
+
 
 1. Verify Cordon Command
 
