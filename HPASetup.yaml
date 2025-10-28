@@ -1,5 +1,13 @@
 Here are 2 simple commands - one to verify cordon, one to verify uncordon:
 
+# Normal delete first
+kubectl delete namespace test-env
+
+# If stuck, force delete
+kubectl patch namespace test-env -p '{"metadata":{"finalizers":[]}}' --type=merge
+
+
+
 1. Verify Cordon Command
 
 bash
