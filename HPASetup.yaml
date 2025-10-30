@@ -1,3 +1,5 @@
+Install-WindowsFeature -Name Telnet-Client
+
 bash
 # Deployments with spec.replicas > 0
 kubectl get deployments -A -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}'
