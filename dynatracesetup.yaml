@@ -1,0 +1,94 @@
+3.2 OneAgent Automatic JMS Detection
+
+The OneAgent will automatically detect:
+
+JMS connections from your Spring service
+Message processing times
+Error rates
+Throughput
+What you'll see automatically:
+
+Service: YourSpringJmsService
+Metrics: jms.service.message.processed, jms.service.message.processingTime
+PurePaths: Detailed traces of message processing
+Part 4: Verification and Dashboard Creation
+
+4.1 Verify Data Flow
+
+Check ActiveGate Status:
+
+Dynatrace → Deployment status → Verify ActiveGate is connected
+Check Extension Status:
+
+Settings → Monitoring → Monitored technologies
+Find "IBM MQ" and verify it's active
+Verify Metrics:
+
+Go to Data Explorer
+Search for: ibmmq_queue_message_count
+You should see your mainframe queues
+4.2 Create Comprehensive Dashboard
+
+Build a dashboard that shows:
+
+Application Side (from EKS/OneAgent):
+
+Service response time
+JMS message processing rate
+Error count
+Infrastructure Side (from Mainframe/ActiveGate):
+
+Mainframe queue depths
+Messages in/out rates
+Channel status
+4.3 Key Metrics to Monitor
+
+sql
+# Queue depth alerting
+ibmmq_queue_message_count > 1000
+
+# Service performance
+jms.service.message.processingTime > 30s
+
+# Error correlation
+(jms.service.failure > 0) AND (ibmmq_queue_message_count > 5000)
+Troubleshooting Common Issues
+
+❌ ActiveGate cannot connect to Mainframe MQ
+
+Solution:
+
+Verify network connectivity from ActiveGate host to mainframe
+Check firewall rules
+Validate MQ credentials and permissions
+❌ EKS pods cannot connect to Mainframe MQ
+
+Solution:
+
+Test connectivity from EKS node
+Check DNS resolution in EKS
+Verify MQ client configuration in Spring app
+❌ No JMS metrics in Dynatrace
+
+Solution:
+
+Verify OneAgent is injected into your Spring pods
+Check that JMS technology is enabled in Dynatrace
+Restart ActiveGate after extension deployment
+❌ SSL handshake failures
+
+Solution:
+
+Ensure correct cipher specs on ActiveGate
+Verify certificates are properly configured
+Check mainframe MQ SSL configuration
+Summary
+
+Your setup will now provide:
+
+✅ End-to-end visibility from EKS Spring app to mainframe MQ
+✅ Application performance metrics from OneAgent
+✅ Infrastructure metrics from mainframe MQ via ActiveGate
+✅ Correlation between app performance and queue health
+The key is that the ActiveGate bridges the gap between your cloud-native EKS environment and your traditional mainframe infrastructure.
+
