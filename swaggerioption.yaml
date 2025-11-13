@@ -1,0 +1,242 @@
+Approach 1: Maven/Gradle Plugin (Recommended)
+
+Use the springdoc-openapi-maven-plugin to generate OpenAPI specs during build:
+
+Maven Configuration:
+
+xml
+<plugin>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-maven-plugin</artifactId>
+    <version>1.4</version>
+    <executions>
+        <execution>
+            <phase>compile</phase>
+            <goals>
+                <goal>generate</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <apiDocsUrl>http://localhost:8080/v3/api-docs</apiDocsUrl>
+        <outputFileName>openapi.json</outputFileName>
+        <outputDir>${project.build.directory}/swagger</outputDir>
+    </configuration>
+</plugin>
+GitHub Action:
+
+yaml
+name: Build and Generate Swagger
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  generate-swagger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+      
+      - name: Generate OpenAPI spec
+        run: |
+          ./mvnw springdoc-openapi:generate
+          # This generates swagger without running the app
+      
+      - name: Store OpenAPI specs
+        uses: actions/upload-artifact@v3
+        with:
+          name: openapi-specs
+          path: target/swagger/
+Approach 2: Programmatic Generation with SpringDoc
+
+Create a build-time utility class:
+
+java
+// src/main/java/com/yourapp/OpenApiGenerator.java
+@Component
+public class OpenApiGenerator {
+    
+    public static void main(String[] args) throws Exception {
+        SpringApplication app = new SpringApplication(YourApplication.class);
+        app.setWebApplicationType(WebApplicationType.NONE); // No web server
+        ConfigurableApplicationContext context = app.run(args);
+        
+        OpenApiResource openApiResource = context.getBean(OpenApiResource.class);
+        ObjectMapper mapper = new ObjectMapper();
+        
+        String openApiJson = mapper.writeValueAsString(
+            openApiResource.getOpenApi()
+        );
+        
+        Files.write(Paths.get("target/openapi.json"), openApiJson.getBytes());
+        context.close();
+    }
+}
+GitHub Action step:
+
+yaml
+- name: Generate OpenAPI programmatically
+  run: |
+    ./mvnw compile exec:java -Dexec.mainClass="com.yourapp.OpenApiGenerator"
+Approach 3: Using OpenAPI Annotations Directly
+
+Leverage OpenAPI annotations to generate spec from source code:
+
+java
+@SpringBootApplication
+@OpenAPIDefinition(
+    info = @Info(
+        title = "My API",
+        version = "1.0",
+        description = "API Description"
+    )
+)
+public class YourApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(YourApplication.class, args);
+    }
+}
+Then use a Maven plugin:
+
+xml
+<plugin>
+    <groupId>io.swagger.core.v3</groupId>
+    <artifactId>swagger-maven-plugin</artifactId>
+    <version>2.2.8</version>
+    <configuration>
+        <outputFileName>openapi</outputFileName>
+        <outputPath>${project.build.directory}/swagger</outputPath>
+        <outputFormat>JSON</outputFormat>
+        <resourcePackages>
+            <resourcePackage>com.yourapp.controllers</resourcePackage>
+        </resourcePackages>
+    </configuration>
+    <executions>
+        <execution>
+            <phase>compile</phase>
+            <goals>
+                <goal>resolve</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+Approach 4: Custom GitHub Action with Multiple Services
+
+yaml
+name: Multi-Service Swagger Generation
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  generate-specs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service-path: ['user-service', 'order-service', 'payment-service']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: ${{ matrix.service-path }}
+      
+      - name: Generate OpenAPI for ${{ matrix.service-path }}
+        run: |
+          cd ${{ matrix.service-path }}
+          ./mvnw springdoc-openapi:generate -DskipTests
+          
+      - name: Upload OpenAPI spec
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.service-path }}-openapi
+          path: ${{ matrix.service-path }}/target/swagger/openapi.json
+Approach 5: Using OpenAPI Generator
+
+xml
+<plugin>
+    <groupId>org.openapitools</groupId>
+    <artifactId>openapi-generator-maven-plugin</artifactId>
+    <version>6.3.0</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>generate</goal>
+            </goals>
+            <configuration>
+                <inputSpec>${project.basedir}/src/main/resources/api.yaml</inputSpec>
+                <generatorName>spring</generatorName>
+                <configOptions>
+                    <sourceFolder>src/gen/java/main</sourceFolder>
+                </configOptions>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+Complete GitHub Actions Workflow Example:
+
+yaml
+name: Build and Generate API Specs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  generate-openapi:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'maven'
+        
+    - name: Generate OpenAPI specifications
+      run: |
+        # Generate for all services
+        for service in service1 service2 service3; do
+          echo "Generating OpenAPI for $service"
+          cd $service
+          mvn springdoc-openapi:generate -DskipTests
+          cd ..
+        done
+        
+    - name: Validate OpenAPI specs
+      run: |
+        npm install -g swagger-cli
+        for spec in */target/swagger/*.json; do
+          swagger-cli validate "$spec"
+        done
+        
+    - name: Upload OpenAPI specs
+      uses: actions/upload-artifact@v3
+      with:
+        name: openapi-specifications
+        path: |
+          */target/swagger/*.json
+        retention-days: 30
+Key Benefits of These Approaches:
+
+No running services required - Pure build-time generation
+Faster builds - No need to start Spring context
+Consistent results - Same output every time
+Can be validated - Validate specs before storing
+Versioned with code - Specs change when API changes
+The Maven/Gradle plugin approach (Approach 1) is usually the most straightforward and reliable for Spring Boot microservices.
+
