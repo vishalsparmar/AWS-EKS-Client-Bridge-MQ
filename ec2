@@ -10,3 +10,7 @@ aws ssm start-session --target i-1234567890abcdef0 --document-name AWS-StartInte
 
 # In Windows PowerShell
 Start-SSMSession -Target i-1234567890abcdef0
+
+# Install AWS.Tools module
+Install-Module -Name AWS.Tools.Installer -Force
+Install-AWSToolsModule AWS.Tools.SSM -CleanUp
