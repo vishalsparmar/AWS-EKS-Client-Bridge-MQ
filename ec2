@@ -14,3 +14,58 @@ Start-SSMSession -Target i-1234567890abcdef0
 # Install AWS.Tools module
 Install-Module -Name AWS.Tools.Installer -Force
 Install-AWSToolsModule AWS.Tools.SSM -CleanUp
+
+
+
+owershell
+# Run PowerShell as Administrator for this step
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+2. Install AWS Tools properly:
+
+powershell
+# Install the main AWS tools module
+Install-Module -Name AWS.Tools -Force
+
+# Or install just SSM module
+Install-Module -Name AWS.Tools.SSM -Force
+3. Import the module:
+
+powershell
+# Import the SSM module
+Import-Module AWS.Tools.SSM
+
+# Verify it's loaded
+Get-Module AWS.Tools.SSM
+Alternative Installation Methods
+
+If the above fails, try this approach:
+
+powershell
+# Install via AWS Tools installer (different method)
+Install-Module -Name AWS.Tools.Installer -Force
+Install-AWSToolsModule -Name AWS.Tools.SSM -CleanUp
+Or install all common AWS tools:
+
+powershell
+# This installs multiple AWS modules including SSM
+Install-AWSToolsModule -Name AWS.Tools.Common,AWS.Tools.SSM,AWS.Tools.EC2 -CleanUp
+Verify Installation
+
+powershell
+# Check if AWS commands are available
+Get-Command *AWS*SSM*
+
+# Should show commands like:
+# Get-SSMAssociation
+# Get-SSMCommand
+# Get-SSMCommandInvocation
+# Get-SMInstanceInformation
+# Start-SSMSession
+If You Still Get Errors
+
+Try with the full module path:
+
+powershell
+# Specify the full gallery source
+Install-Module -Name AWS.Tools.SSM -Repository PSGallery -Force
+
