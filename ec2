@@ -6,3 +6,7 @@ aws ssm start-session --target i-1234567890abcdef0 --region us-east-1
 
 # With document name
 aws ssm start-session --target i-1234567890abcdef0 --document-name AWS-StartInteractiveCommand
+
+
+# In Windows PowerShell
+Start-SSMSession -Target i-1234567890abcdef0
