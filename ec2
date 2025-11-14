@@ -1,0 +1,175 @@
+so I have aws ec2 instance up in pet subnet, how can I ssh connect from my local pc , I already have asetup my aws profile locally
+Here's how to SSH into your EC2 instance in a private subnet from your local PC:
+
+Prerequisites Check
+
+✅ AWS CLI configured with your profile
+✅ EC2 instance in private subnet
+✅ Key pair file (.pem) for the instance
+Method 1: Direct SSH (if instance has public IP)
+
+bash
+ssh -i /path/to/your-key.pem ec2-user@<instance-public-ip>
+Replace:
+
+/path/to/your-key.pem with your actual key file path
+ec2-user with the appropriate username (ec2-user for Amazon Linux, ubuntu for Ubuntu, etc.)
+<instance-public-ip> with your instance's public IP
+Method 2: Using AWS SSM Session Manager (Recommended for private subnets)
+
+If your instance is in a private subnet without public IP, use SSM:
+
+1. Install Session Manager plugin
+
+bash
+# On macOS
+brew install session-manager-plugin
+
+# On Windows (via Chocolatey)
+choco install session-manager-plugin
+
+# Or download from AWS documentation
+2. Attach SSM role to your EC2 instance
+
+Your instance needs an IAM role with AmazonSSMManagedInstanceCore policy.
+
+3. Connect via SSM
+
+bash
+aws ssm start-session --target <instance-id> --profile your-profile-name
+Method 3: Through a Bastion Host (Jump Host)
+
+If you have a bastion host in a public subnet:
+
+bash
+# SSH through bastion
+ssh -i /path/to/key.pem -J ec2-user@<bastion-public-ip> ec2-user@<private-instance-private-ip>
+Troubleshooting Tips
+
+Check instance status:
+
+bash
+aws ec2 describe-instances --instance-ids <instance-id> --profile your-profile
+Verify security groups:
+
+Ensure SSH (port 22) is allowed from your IP or anywhere (0.0.0.0/0) for testing
+Key file permissions:
+
+bash
+chmod 400 /path/to/your-key.pem
+Quick Connection Script
+
+Create a simple script for easy connection:
+
+bash
+#!/bin/bash
+INSTANCE_IP="your-instance-ip"
+KEY_PATH="/path/to/your-key.pem"
+USERNAME="ec2-user"
+
+ssh -i $KEY_PATH $USERNAME@$INSTANCE_IP
+Which method would work best for your setup? Do you know if your instance has a public IP or if SSM is configured?
+how to install session manager plugin in windows box using gitbash
+Here's how to install AWS Session Manager plugin on Windows using Git Bash:
+
+Method 1: Using Chocolatey (Recommended)
+
+1. First install Chocolatey if you don't have it:
+
+bash
+# Run Git Bash as Administrator
+Set-ExecutionPolicy Bypass -Scope Process -Force
+iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+2. Install Session Manager plugin:
+
+bash
+choco install session-manager-plugin -y
+Method 2: Manual Installation
+
+1. Download the plugin:
+
+bash
+# Create temp directory
+mkdir -p /tmp/aws-ssm
+cd /tmp/aws-ssm
+
+# Download the plugin (check for latest version on AWS docs)
+curl -O https://s3.amazonaws.com/session-manager-downloads/plugin/latest/windows/SessionManagerPlugin.zip
+2. Extract and install:
+
+bash
+# Extract the zip
+unzip SessionManagerPlugin.zip
+
+# Create AWS directory in Program Files
+mkdir -p "/c/Program Files/Amazon/SessionManagerPlugin/bin"
+
+# Copy the executable
+cp session-manager-plugin.exe "/c/Program Files/Amazon/SessionManagerPlugin/bin/"
+
+# Add to PATH (temporary)
+export PATH=$PATH:"/c/Program Files/Amazon/SessionManagerPlugin/bin"
+3. Make the PATH change permanent:
+
+Add this line to your ~/.bashrc or ~/.bash_profile:
+
+bash
+echo 'export PATH=$PATH:"/c/Program Files/Amazon/SessionManagerPlugin/bin"' >> ~/.bashrc
+source ~/.bashrc
+Method 3: Using AWS CLI Built-in (if you have newer AWS CLI)
+
+If you have AWS CLI version 2.x, you can install it this way:
+
+bash
+# Install using AWS CLI's built-in plugin installer
+aws session-manager-plugin
+# This might prompt you to install if not present
+Verify Installation
+
+After installation, verify it works:
+
+bash
+session-manager-plugin
+# or
+which session-manager-plugin
+Test Connection to Your EC2 Instance
+
+Once installed, test the connection:
+
+bash
+aws ssm start-session --target <your-instance-id> --profile your-aws-profile
+Prerequisites Check
+
+Make sure your EC2 instance has:
+
+IAM Role with AmazonSSMManagedInstanceCore policy attached
+SSM Agent installed (usually pre-installed on Amazon Linux 2, Ubuntu 18.04+)
+Troubleshooting
+
+If you get permission errors:
+
+Run Git Bash as Administrator
+Check IAM role on the EC2 instance
+Verify SSM agent is running on the instance
+The Chocolatey method is usually the easiest and handles PATH configuration automatically. Which method would you like to try?
+aws session manager login did not work
+Let's troubleshoot the AWS Session Manager login issue. Here's a systematic approach:
+
+1. First, Verify the Error
+
+What specific error message are you getting? Run this to see details:
+
+bash
+aws ssm start-session --target <instance-id> --profile your-profile --debug
+2. Check EC2 Instance Prerequisites
+
+Verify SSM Agent is running on the instance:
+
+bash
+# Check instance status
+aws ec2 describe-instances --instance-ids <instance-id> --profile your-profile
+
+# Check if SSM agent is installed and running (if you can access via other means)
+Check IAM Role:
+
+Your EC2 instance MUST have an IAM role with the AmazonSSMManagedInstanceCore policy attached.
