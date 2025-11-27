@@ -4,16 +4,6 @@ argocd app list -o json | jq '.[] | {name: .metadata.name, namespace: .spec.dest
 
 argocd app list -o json | jq '.[] | {name: .metadata.name, namespace: .spec.destination.namespace}'
 
-argocd app list -o json | jq -r '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test("prod")) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.spec.source.targetRevision)|\(.status.sync.status)"' | column -t -s "|"
-Filter for staging namespaces:
-
-bash
-argocd app list -o json | jq -r '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test("staging")) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.spec.source.targetRevision)|\(.status.sync.status)"' | column -t -s "|"
-
-
-
-argocd app list -o json | jq -r '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test("prod")) | ["\(.metadata.name)", "\(.spec.destination.namespace)", "\(.spec.source.targetRevision)", "\(.status.sync.status)", "\(.status.health.status)"] | @tsv' | column -t
-Method 3: Add Headers Manually
 
 bash
 echo -e "APP_NAME\tNAMESPACE\tVERSION\tSYNC_STATUS\tHEALTH_STATUS" && argocd app list -o json | jq -r '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test("prod")) | "\(.metadata.name)\t\(.spec.destination.namespace)\t\(.spec.source.targetRevision)\t\(.status.sync.status)\t\(.status.health.status)"' | column -t
@@ -21,7 +11,12 @@ Method 4: Clean Formatted Output
 
 
 
-echo "APP|NAMESPACE|CONTAINER_IMAGE|SYNC_STATUS|HEALTH" | column -t -s "|"
-echo "----------------------------------------------------------------"
 
-argocd app get "$APP_NAME" -o json | jq '.status.resources[] | {kind: .kind, image: (.liveState | fromjson?.spec?.template?.spec?.containers[0]?.image)}'
+# Command 1: Simple test
+APP="your-app-name"
+argocd app get $APP -o json | jq '.status.resources[0].liveState' | jq '.spec.template.spec.containers[0].image'
+
+# Command 2: With temp file
+argocd app get your-app-name -o json > t.json
+jq -r '.status.resources[0].liveState | fromjson | .spec.template.spec.containers[0].image' t.json
+rm t.json
