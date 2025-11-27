@@ -12,11 +12,4 @@ Method 4: Clean Formatted Output
 
 
 
-# Command 1: Simple test
-APP="your-app-name"
-argocd app get $APP -o json | jq '.status.resources[0].liveState' | jq '.spec.template.spec.containers[0].image'
-
-# Command 2: With temp file
-argocd app get your-app-name -o json > t.json
-jq -r '.status.resources[0].liveState | fromjson | .spec.template.spec.containers[0].image' t.json
-rm t.json
+argocd app get "$APP_NAME" -o json | jq -r '.status.summary.images[] | split(":")[1]'
