@@ -24,15 +24,4 @@ Method 4: Clean Formatted Output
 echo "APP|NAMESPACE|CONTAINER_IMAGE|SYNC_STATUS|HEALTH" | column -t -s "|"
 echo "----------------------------------------------------------------"
 
-argocd app list -o json | jq -r '.[] | 
-  .metadata.name as $app |
-  .spec.destination.namespace as $ns |
-  .status.sync.status as $sync |
-  .status.health.status as $health |
-  [.status.resources[]? | 
-    (.liveState | fromjson?.spec?.template?.spec?.containers[]?.image) // 
-    (.liveState | fromjson?.spec?.containers[]?.image)
-  ] | unique[] | 
-  "\($app)|\($ns)|\(.)|\($sync)|\($health)"' | 
-  column -t -s "|"
-
+argocd app get "$APP_NAME" -o json | jq '.status.resources[] | {kind: .kind, image: (.liveState | fromjson?.spec?.template?.spec?.containers[0]?.image)}'
