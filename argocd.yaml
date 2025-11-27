@@ -1,1 +1,4 @@
 curl -sSL -o argocd-windows-amd64.exe https://github.com/argoproj/argo-cd/releases/latest/download/argocd-windows-amd64.exe
+
+
+argocd app list -o json | jq -r '.[] | select(.spec.destination.namespace | test("prod.*")) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.spec.source.targetRevision)|\(.status.sync.status)"' | column -t -s "|"
