@@ -12,4 +12,5 @@ Method 4: Clean Formatted Output
 
 
 
-argocd app list -o json | jq -r --arg pattern "$PATTERN" '.[] | select(.spec.destination.namespace | test($pattern)) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.status.sync.status)|\(.status.summary.images // ["N/A"] | join(","))"' | column -t -s "|"
+echo "APP|NAMESPACE|SYNC_STATUS|IMAGES" | column -t -s "|"
+argocd app list -o json | jq -r --arg pattern "$PATTERN" '.[] | select(.spec.destination.namespace? != null) | select(.spec.destination.namespace | test($pattern)) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.status.sync.status)|\(.status.summary.images // ["N/A"] | join(","))"' | column -t -s "|"
