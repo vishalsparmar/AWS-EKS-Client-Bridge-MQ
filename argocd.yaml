@@ -14,5 +14,8 @@ Method 4: Clean Formatted Output
 
 PATTERN="${1:-.*}"
 
-echo "APP|NAMESPACE|SYNC_STATUS|VERSION"
-argocd app list -o json | jq -r --arg pattern "$PATTERN" '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test($pattern)) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.status.sync.status)|\(.status.summary.images[1]? | split(":")[-1])"' | sed 's/|/\t/g'
+#!/bin/bash
+
+PATTERN="${1:-.*}"
+echo "APP|NAMESPACE|SYNC_STATUS|VERSION" | column -t -s "|"
+argocd app list -o json | jq -r --arg pattern "$PATTERN" '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test($pattern)) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.status.sync.status)|\(.status.summary.images[1]? | if contains(":") then split(":")[-1] else . end)"' | column -t -s "|"
