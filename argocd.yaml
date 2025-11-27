@@ -18,4 +18,8 @@ PATTERN="${1:-.*}"
 
 PATTERN="${1:-.*}"
 echo "APP|NAMESPACE|SYNC_STATUS|VERSION" | column -t -s "|"
-argocd app list -o json | jq -r --arg pattern "$PATTERN" '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test($pattern)) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.status.sync.status)|\(.status.summary.images[1]? | if contains(":") then split(":")[-1] else . end)"' | column -t -s "|"
+#!/bin/bash
+
+PATTERN="${1:-.*}"
+
+argocd app list -o json | jq -r --arg pattern "$PATTERN" '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test($pattern)) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.status.sync.status)|\(.status.summary.images[1]? | .[-10:])"' | column -t -s "|"
