@@ -12,4 +12,4 @@ Method 4: Clean Formatted Output
 
 
 
-argocd app get "$APP_NAME" -o json | jq -r '.status.summary.images[] | split(":")[1]'
+argocd app list -o json | jq -r --arg pattern "$PATTERN" '.[] | select(.spec.destination.namespace | test($pattern)) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.status.sync.status)|\(.status.summary.images // ["N/A"] | join(","))"' | column -t -s "|"
