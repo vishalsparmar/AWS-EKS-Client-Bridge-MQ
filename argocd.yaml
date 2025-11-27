@@ -10,3 +10,35 @@ Filter for staging namespaces:
 bash
 argocd app list -o json | jq -r '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test("staging")) | "\(.metadata.name)|\(.spec.destination.namespace)|\(.spec.source.targetRevision)|\(.status.sync.status)"' | column -t -s "|"
 
+
+
+argocd app list -o json | jq -r '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test("prod")) | ["\(.metadata.name)", "\(.spec.destination.namespace)", "\(.spec.source.targetRevision)", "\(.status.sync.status)", "\(.status.health.status)"] | @tsv' | column -t
+Method 3: Add Headers Manually
+
+bash
+echo -e "APP_NAME\tNAMESPACE\tVERSION\tSYNC_STATUS\tHEALTH_STATUS" && argocd app list -o json | jq -r '.[] | select(.spec.destination.namespace != null) | select(.spec.destination.namespace | test("prod")) | "\(.metadata.name)\t\(.spec.destination.namespace)\t\(.spec.source.targetRevision)\t\(.status.sync.status)\t\(.status.health.status)"' | column -t
+Method 4: Clean Formatted Output
+
+bash
+argocd app list -o json | jq -r '
+  ["APP", "NAMESPACE", "VERSION", "SYNC", "HEALTH"],
+  (.[] | 
+    select(.spec.destination.namespace != null) | 
+    select(.spec.destination.namespace | test("prod")) | 
+    [.metadata.name, .spec.destination.namespace, .spec.source.targetRevision, .status.sync.status, .status.health.status]
+  ) | @tsv' | column -t
+Method 5: Simple One-liner
+
+bash
+argocd app list -o json | jq -r '.[] | select(.spec.destination.namespace != null) | "\(.metadata.name) | \(.spec.destination.namespace) | \(.spec.source.targetRevision) | \(.status.sync.status)"' | column -t -s "|"
+Key Field Explained:
+
+.spec.source.targetRevision = The app version (git tag/branch/commit)
+.metadata.name = App name
+.spec.destination.namespace = Kubernetes namespace
+.status.sync.status = Sync status (Synced/OutOfSync)
+.status.health.status = Health status (Healthy/Degraded)
+**Example
+
+Continue
+
