@@ -1,0 +1,1 @@
+curl -sSL -o argocd-windows-amd64.exe https://github.com/argoproj/argo-cd/releases/latest/download/argocd-windows-amd64.exe
